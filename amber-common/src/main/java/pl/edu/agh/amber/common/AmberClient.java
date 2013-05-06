@@ -13,10 +13,14 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class AmberClient implements Runnable {
+/**
+ * Class used to communicate with robot.
+ *
+ * @author Michał Konarski <konarski@student.agh.edu.pl>
+ */
+public class AmberClient {
 
     private final DatagramSocket socket;
     private final InetAddress address;
@@ -25,28 +29,38 @@ public class AmberClient implements Runnable {
     private boolean terminated = false;
 
     private final static int RECEIVING_BUFFER_SIZE = 4096;
+    private final static int DEFAULT_PORT = 26233;
 
     private Map<MultiKey, AmberProxy> proxyMap = new HashMap<MultiKey, AmberProxy>();
     private Thread receivingThread;
 
     private static Logger logger = Logger.getLogger("AmberClient");
 
-    public void registerClient(int deviceType, int deviceID, AmberProxy proxy) {
-        proxyMap.put(new MultiKey(deviceType, deviceID), proxy);
-    }
-
+    /**
+     * Instantiates AmberClient object.
+     *
+     * @param hostname robot's hostname
+     * @param port     robot's listening port (most times 26233)
+     * @throws IOException thrown on connection problem.
+     */
     public AmberClient(String hostname, int port) throws IOException {
 
         this.socket = new DatagramSocket();
         this.address = InetAddress.getByName(hostname);
         this.port = port;
 
-        logger.setLevel(Level.INFO);
-
         logger.info(String.format(
-                "Starting AmberClient, remote address: %s, port: %d.", hostname, port));
+                "Starting AmberClient, remote address: %s, port: %d.",
+                hostname, port));
 
-        receivingThread = new Thread(this);
+        receivingThread = new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                messageReceivingLoop();
+            }
+        });
+
         receivingThread.start();
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -56,9 +70,87 @@ public class AmberClient implements Runnable {
         });
     }
 
-    @Override
-    public void run() {
-        messageReceivingLoop();
+    /**
+     * Instantiates AmberClient object.
+     *
+     * @param hostname robot's hostname
+     * @throws IOException thrown on connection problem.
+     */
+    public AmberClient(String hostname) throws IOException {
+        this(hostname, DEFAULT_PORT);
+    }
+
+    /**
+     * Registers {@link AmberProxy} in client.
+     *
+     * @param deviceType device type ID
+     * @param deviceID   device instance ID
+     * @param proxy      {@link AmberProxy} object.
+     */
+    public void registerClient(int deviceType, int deviceID, AmberProxy proxy) {
+        proxyMap.put(new MultiKey(deviceType, deviceID), proxy);
+    }
+
+    /**
+     * Sends message to the robot.
+     *
+     * @param header  Protobuf's {@link DriverHdr}, message header.
+     * @param message Prototobuf's {@link DriverMsg}, message contents.
+     * @throws IOException thrown on connection problem.
+     */
+    synchronized public void sendMessage(DriverHdr header, DriverMsg message)
+            throws IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        int len;
+
+        // Header length
+        len = header.getSerializedSize();
+        outputStream.write((byte) (len >> 8) & 0xff);
+        outputStream.write((byte) (len & 0xff));
+
+        // Header
+        outputStream.write(header.toByteArray());
+
+        // Message length
+        len = message.getSerializedSize();
+        outputStream.write((byte) (len >> 8) & 0xff);
+        outputStream.write((byte) (len & 0xff));
+
+        // Message
+        outputStream.write(message.toByteArray());
+
+        logger.fine(String.format("Sending an UDP packet for (%d: %d).",
+                header.getDeviceType(), header.getDeviceID()));
+
+        DatagramPacket packet = new DatagramPacket(outputStream.toByteArray(),
+                outputStream.size(), address, port);
+        socket.send(packet);
+    }
+
+    /**
+     * Terminates client.
+     */
+    public void terminate() {
+        if (terminated) {
+            return;
+        }
+
+        terminated = true;
+
+        logger.info("Terminating.");
+        terminateProxies();
+        socket.close();
+        receivingThread.interrupt();
+    }
+
+    /**
+     * Terminates all registered proxies.
+     */
+    public void terminateProxies() {
+        for (AmberProxy proxy : proxyMap.values()) {
+            proxy.terminateProxy();
+        }
     }
 
     private void messageReceivingLoop() {
@@ -143,8 +235,9 @@ public class AmberClient implements Runnable {
                 break;
 
             default:
-                logger.warning(String.format("Unexpected message came: %s, ignoring.",
-                        message.getType().toString()));
+                logger.warning(String.format(
+                        "Unexpected message came: %s, ignoring.", message.getType()
+                        .toString()));
         }
 
     }
@@ -190,61 +283,12 @@ public class AmberClient implements Runnable {
 
     }
 
-    synchronized public void sendMessage(DriverHdr header, DriverMsg message)
-            throws IOException {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-
-        int len;
-
-        // Header length
-        len = header.getSerializedSize();
-        outputStream.write((byte) (len >> 8) & 0xff);
-        outputStream.write((byte) (len & 0xff));
-
-        // Header
-        outputStream.write(header.toByteArray());
-
-        // Message length
-        len = message.getSerializedSize();
-        outputStream.write((byte) (len >> 8) & 0xff);
-        outputStream.write((byte) (len & 0xff));
-
-        // Message
-        outputStream.write(message.toByteArray());
-
-        logger.fine(String.format("Sending an UDP packet for (%d: %d).",
-                header.getDeviceType(), header.getDeviceID()));
-
-        DatagramPacket packet = new DatagramPacket(outputStream.toByteArray(),
-                outputStream.size(), address, port);
-        socket.send(packet);
-    }
-
     private void handlePingMessage(DriverHdr header, DriverMsg message) {
 
     }
 
     private void handlePongMessage(DriverHdr header, DriverMsg message) {
 
-    }
-
-    public void terminate() {
-        if (terminated) {
-            return;
-        }
-
-        terminated = true;
-
-        logger.info("Terminating.");
-        terminateProxies();
-        socket.close();
-        receivingThread.interrupt();
-    }
-
-    public void terminateProxies() {
-        for (AmberProxy proxy : proxyMap.values()) {
-            proxy.terminateProxy();
-        }
     }
 
 }
