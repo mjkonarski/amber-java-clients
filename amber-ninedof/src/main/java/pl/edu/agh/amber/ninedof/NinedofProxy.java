@@ -1,11 +1,6 @@
 package pl.edu.agh.amber.ninedof;
 
-import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.Logger;
-
+import com.google.protobuf.ExtensionRegistry;
 import pl.edu.agh.amber.common.AmberClient;
 import pl.edu.agh.amber.common.AmberProxy;
 import pl.edu.agh.amber.common.CyclicDataListener;
@@ -17,161 +12,165 @@ import pl.edu.agh.amber.ninedof.proto.NinedofProto.DataRequest;
 import pl.edu.agh.amber.ninedof.proto.NinedofProto.SensorData;
 import pl.edu.agh.amber.ninedof.proto.NinedofProto.SubscribeAction;
 
-import com.google.protobuf.ExtensionRegistry;
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Logger;
 
 public class NinedofProxy extends AmberProxy {
 
-	private final static int DEVICE_TYPE = 1;
+    private final static int DEVICE_TYPE = 1;
 
-	private Map<Integer, FutureObject> futureObjectsMap = new ConcurrentHashMap<Integer, FutureObject>();
-	private CyclicDataListener<NinedofData> ninedofDataListener;
-	private final ReentrantLock listenerLock = new ReentrantLock();
+    private Map<Integer, FutureObject> futureObjectsMap = new ConcurrentHashMap<Integer, FutureObject>();
+    private CyclicDataListener<NinedofData> ninedofDataListener;
+    private final ReentrantLock listenerLock = new ReentrantLock();
 
-	private int synNum = 100;
-	private final ExtensionRegistry extensionRegistry;
+    private int synNum = 100;
+    private final ExtensionRegistry extensionRegistry;
 
-	public NinedofProxy(AmberClient amberClient, int deviceID) {
-		super(DEVICE_TYPE, deviceID, amberClient, Logger
-				.getLogger("NinedofProxy"));
-		
-		logger.info("Starting and registering NinedofProxy.");
+    public NinedofProxy(AmberClient amberClient, int deviceID) {
+        super(DEVICE_TYPE, deviceID, amberClient, Logger
+                .getLogger("NinedofProxy"));
 
-		extensionRegistry = ExtensionRegistry.newInstance();
-		NinedofProto.registerAllExtensions(extensionRegistry);
-	}
+        logger.info("Starting and registering NinedofProxy.");
 
-	synchronized private int getNextSynNum() {
-		return synNum++;
-	}
+        extensionRegistry = ExtensionRegistry.newInstance();
+        NinedofProto.registerAllExtensions(extensionRegistry);
+    }
 
-	private void fillStructure(NinedofData ninedofData, DriverMsg message) {
-		SensorData sensorData = message.getExtension(NinedofProto.sensorData);
+    synchronized private int getNextSynNum() {
+        return synNum++;
+    }
 
-		ninedofData.setAccel(new NinedofData.AxesData(sensorData.getAccel()
-				.getXAxis(), sensorData.getAccel().getYAxis(), sensorData
-				.getAccel().getZAxis()));
+    private void fillStructure(NinedofData ninedofData, DriverMsg message) {
+        SensorData sensorData = message.getExtension(NinedofProto.sensorData);
 
-		ninedofData.setGyro(new NinedofData.AxesData(sensorData.getGyro()
-				.getXAxis(), sensorData.getGyro().getYAxis(), sensorData
-				.getGyro().getZAxis()));
+        ninedofData.setAccel(new NinedofData.AxesData(sensorData.getAccel()
+                .getXAxis(), sensorData.getAccel().getYAxis(), sensorData
+                .getAccel().getZAxis()));
 
-		ninedofData.setMagnet(new NinedofData.AxesData(sensorData.getMagnet()
-				.getXAxis(), sensorData.getMagnet().getYAxis(), sensorData
-				.getMagnet().getZAxis()));
-	}
+        ninedofData.setGyro(new NinedofData.AxesData(sensorData.getGyro()
+                .getXAxis(), sensorData.getGyro().getYAxis(), sensorData
+                .getGyro().getZAxis()));
 
-	@Override
-	public void handleDataMsg(DriverHdr header, DriverMsg message) {
-		if (!message.hasAckNum() || message.getAckNum() == 0) {
+        ninedofData.setMagnet(new NinedofData.AxesData(sensorData.getMagnet()
+                .getXAxis(), sensorData.getMagnet().getYAxis(), sensorData
+                .getMagnet().getZAxis()));
+    }
 
-			NinedofData ninedofData = new NinedofData();
-			fillStructure(ninedofData, message);
-			ninedofData.setAvailable();
+    @Override
+    public void handleDataMsg(DriverHdr header, DriverMsg message) {
+        if (!message.hasAckNum() || message.getAckNum() == 0) {
 
-			synchronized (listenerLock) {
-				if (ninedofDataListener != null) {
-					ninedofDataListener.handle(ninedofData);
-				}
-			}
+            NinedofData ninedofData = new NinedofData();
+            fillStructure(ninedofData, message);
+            ninedofData.setAvailable();
 
-		} else {
-			int ackNum = message.getAckNum();
+            synchronized (listenerLock) {
+                if (ninedofDataListener != null) {
+                    ninedofDataListener.handle(ninedofData);
+                }
+            }
 
-			// TODO: automatically removing abandoned futureObjects
-			if (futureObjectsMap.containsKey(ackNum)) {
-				NinedofData ninedofData = (NinedofData) futureObjectsMap
-						.remove(ackNum);
+        } else {
+            int ackNum = message.getAckNum();
 
-				fillStructure(ninedofData, message);
-				ninedofData.setAvailable();
-			}
-		}
-	}
+            // TODO: automatically removing abandoned futureObjects
+            if (futureObjectsMap.containsKey(ackNum)) {
+                NinedofData ninedofData = (NinedofData) futureObjectsMap
+                        .remove(ackNum);
 
-	public void registerNinedofDataListener(int freq, boolean accel,
-			boolean gyro, boolean magnet,
-			CyclicDataListener<NinedofData> listener) throws IOException {
-		
-		logger.fine(String.format("Registering NinedofDataListener, freq: %d, a:%s, g:%s, m:%s.", 
-				freq, accel, gyro, magnet));
+                fillStructure(ninedofData, message);
+                ninedofData.setAvailable();
+            }
+        }
+    }
 
-		DriverMsg driverMsg = buildSubscribeActionMsg(freq, accel, gyro, magnet);
+    public void registerNinedofDataListener(int freq, boolean accel,
+                                            boolean gyro, boolean magnet,
+                                            CyclicDataListener<NinedofData> listener) throws IOException {
 
-		synchronized (listenerLock) {
-			ninedofDataListener = listener;
-		}
+        logger.fine(String.format("Registering NinedofDataListener, freq: %d, a:%s, g:%s, m:%s.",
+                freq, accel, gyro, magnet));
 
-		amberClient.sendMessage(buildHeader(), driverMsg);
-	}
+        DriverMsg driverMsg = buildSubscribeActionMsg(freq, accel, gyro, magnet);
 
-	public void unregisterDataListener() throws IOException {
-		DriverMsg driverMsg = buildSubscribeActionMsg(0, false, false, false);
+        synchronized (listenerLock) {
+            ninedofDataListener = listener;
+        }
 
-		synchronized (listenerLock) {
-			ninedofDataListener = null;
-		}
+        amberClient.sendMessage(buildHeader(), driverMsg);
+    }
 
-		amberClient.sendMessage(buildHeader(), driverMsg);
-	}
+    public void unregisterDataListener() throws IOException {
+        DriverMsg driverMsg = buildSubscribeActionMsg(0, false, false, false);
 
-	private DriverMsg buildSubscribeActionMsg(int freq, boolean accel,
-			boolean gyro, boolean magnet) {
+        synchronized (listenerLock) {
+            ninedofDataListener = null;
+        }
 
-		SubscribeAction.Builder subscribeActionBuilder = SubscribeAction
-				.newBuilder();
-		subscribeActionBuilder.setFreq(freq);
-		subscribeActionBuilder.setAccel(accel);
-		subscribeActionBuilder.setGyro(gyro);
-		subscribeActionBuilder.setMagnet(magnet);
+        amberClient.sendMessage(buildHeader(), driverMsg);
+    }
 
-		DriverMsg.Builder driverMsgBuilder = DriverMsg.newBuilder();
-		driverMsgBuilder.setType(DriverMsg.MsgType.DATA);
-		driverMsgBuilder.setExtension(NinedofProto.subscribeAction,
-				subscribeActionBuilder.build());
+    private DriverMsg buildSubscribeActionMsg(int freq, boolean accel,
+                                              boolean gyro, boolean magnet) {
 
-		return driverMsgBuilder.build();
-	}
+        SubscribeAction.Builder subscribeActionBuilder = SubscribeAction
+                .newBuilder();
+        subscribeActionBuilder.setFreq(freq);
+        subscribeActionBuilder.setAccel(accel);
+        subscribeActionBuilder.setGyro(gyro);
+        subscribeActionBuilder.setMagnet(magnet);
 
-	private DriverMsg buildDataRequestMsg(int synNum, boolean accel,
-			boolean gyro, boolean magnet) {
+        DriverMsg.Builder driverMsgBuilder = DriverMsg.newBuilder();
+        driverMsgBuilder.setType(DriverMsg.MsgType.DATA);
+        driverMsgBuilder.setExtension(NinedofProto.subscribeAction,
+                subscribeActionBuilder.build());
 
-		DataRequest.Builder dataRequestBuilder = DataRequest.newBuilder();
-		dataRequestBuilder.setAccel(accel);
-		dataRequestBuilder.setGyro(gyro);
-		dataRequestBuilder.setMagnet(magnet);
+        return driverMsgBuilder.build();
+    }
 
-		DriverMsg.Builder driverMsgBuilder = DriverMsg.newBuilder();
-		driverMsgBuilder.setType(DriverMsg.MsgType.DATA);
-		driverMsgBuilder.setExtension(NinedofProto.dataRequest,
-				dataRequestBuilder.build());
+    private DriverMsg buildDataRequestMsg(int synNum, boolean accel,
+                                          boolean gyro, boolean magnet) {
 
-		driverMsgBuilder.setSynNum(synNum);
+        DataRequest.Builder dataRequestBuilder = DataRequest.newBuilder();
+        dataRequestBuilder.setAccel(accel);
+        dataRequestBuilder.setGyro(gyro);
+        dataRequestBuilder.setMagnet(magnet);
 
-		return driverMsgBuilder.build();
-	}
+        DriverMsg.Builder driverMsgBuilder = DriverMsg.newBuilder();
+        driverMsgBuilder.setType(DriverMsg.MsgType.DATA);
+        driverMsgBuilder.setExtension(NinedofProto.dataRequest,
+                dataRequestBuilder.build());
 
-	public NinedofData getAxesData(boolean accel, boolean gyro, boolean magnet)
-			throws IOException {
-		int synNum = getNextSynNum();
+        driverMsgBuilder.setSynNum(synNum);
 
-		logger.fine(String.format("Pulling NinedofData, a:%s, g:%s, m:%s.", 
-				accel, gyro, magnet));
+        return driverMsgBuilder.build();
+    }
 
-		
-		DriverMsg dataRequestMsg = buildDataRequestMsg(synNum, accel, gyro,
-				magnet);
+    public NinedofData getAxesData(boolean accel, boolean gyro, boolean magnet)
+            throws IOException {
+        int synNum = getNextSynNum();
 
-		NinedofData ninedofData = new NinedofData();
-		futureObjectsMap.put(synNum, ninedofData);
+        logger.fine(String.format("Pulling NinedofData, a:%s, g:%s, m:%s.",
+                accel, gyro, magnet));
 
-		amberClient.sendMessage(buildHeader(), dataRequestMsg);
 
-		return ninedofData;
-	}
+        DriverMsg dataRequestMsg = buildDataRequestMsg(synNum, accel, gyro,
+                magnet);
 
-	@Override
-	public ExtensionRegistry getExtensionRegistry() {
-		return extensionRegistry;
-	}
+        NinedofData ninedofData = new NinedofData();
+        futureObjectsMap.put(synNum, ninedofData);
+
+        amberClient.sendMessage(buildHeader(), dataRequestMsg);
+
+        return ninedofData;
+    }
+
+    @Override
+    public ExtensionRegistry getExtensionRegistry() {
+        return extensionRegistry;
+    }
 
 }

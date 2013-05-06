@@ -1,5 +1,11 @@
 package pl.edu.agh.amber.common;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
+import org.apache.commons.collections.keyvalue.MultiKey;
+import pl.edu.agh.amber.common.proto.CommonProto.DriverHdr;
+import pl.edu.agh.amber.common.proto.CommonProto.DriverMsg;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -10,243 +16,235 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.apache.commons.collections.keyvalue.MultiKey;
-
-import pl.edu.agh.amber.common.proto.CommonProto.DriverHdr;
-import pl.edu.agh.amber.common.proto.CommonProto.DriverMsg;
-
-import com.google.protobuf.ByteString;
-import com.google.protobuf.InvalidProtocolBufferException;
-
 public class AmberClient implements Runnable {
 
-	private final DatagramSocket socket;
-	private final InetAddress address;
-	private final int port;
-	
-	private boolean terminated = false;
+    private final DatagramSocket socket;
+    private final InetAddress address;
+    private final int port;
 
-	private final static int RECEIVING_BUFFER_SIZE = 4096;
+    private boolean terminated = false;
 
-	private Map<MultiKey, AmberProxy> proxyMap = new HashMap<MultiKey, AmberProxy>();
-	private Thread receivingThread;
+    private final static int RECEIVING_BUFFER_SIZE = 4096;
 
-	private static Logger logger = Logger.getLogger("AmberClient");
+    private Map<MultiKey, AmberProxy> proxyMap = new HashMap<MultiKey, AmberProxy>();
+    private Thread receivingThread;
 
-	public void registerClient(int deviceType, int deviceID, AmberProxy proxy) {
-		proxyMap.put(new MultiKey(deviceType, deviceID), proxy);
-	}
+    private static Logger logger = Logger.getLogger("AmberClient");
 
-	public AmberClient(String hostname, int port) throws IOException {
+    public void registerClient(int deviceType, int deviceID, AmberProxy proxy) {
+        proxyMap.put(new MultiKey(deviceType, deviceID), proxy);
+    }
 
-		this.socket = new DatagramSocket();
-		this.address = InetAddress.getByName(hostname);
-		this.port = port;
+    public AmberClient(String hostname, int port) throws IOException {
 
-		logger.setLevel(Level.INFO);
-		
-		logger.info(String.format(
-				"Starting AmberClient, remote address: %s, port: %d.", hostname, port));
+        this.socket = new DatagramSocket();
+        this.address = InetAddress.getByName(hostname);
+        this.port = port;
 
-		receivingThread = new Thread(this);
-		receivingThread.start();
+        logger.setLevel(Level.INFO);
 
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-			public void run() {
-				terminate();
-			}
-		});
-	}
+        logger.info(String.format(
+                "Starting AmberClient, remote address: %s, port: %d.", hostname, port));
 
-	@Override
-	public void run() {
-		messageReceivingLoop();
-	}
+        receivingThread = new Thread(this);
+        receivingThread.start();
 
-	private void messageReceivingLoop() {
-		DatagramPacket packet = new DatagramPacket(
-				new byte[RECEIVING_BUFFER_SIZE], RECEIVING_BUFFER_SIZE);
-		AmberProxy clientProxy = null;
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            public void run() {
+                terminate();
+            }
+        });
+    }
 
-		while (true) {
-			try {
-				logger.finest("Entering socket.receive().");			
-				socket.receive(packet);
+    @Override
+    public void run() {
+        messageReceivingLoop();
+    }
 
-				byte[] packetBytes = packet.getData();
+    private void messageReceivingLoop() {
+        DatagramPacket packet = new DatagramPacket(
+                new byte[RECEIVING_BUFFER_SIZE], RECEIVING_BUFFER_SIZE);
+        AmberProxy clientProxy = null;
 
-				int headerLen = (packetBytes[0] << 8) | packetBytes[1];
-				ByteString headerByteString = ByteString.copyFrom(
-						packet.getData(), 2, headerLen);
-				DriverHdr header = DriverHdr.parseFrom(headerByteString);
+        while (true) {
+            try {
+                logger.finest("Entering socket.receive().");
+                socket.receive(packet);
 
-				int messageLen = (packetBytes[2 + headerLen] << 8)
-						| packetBytes[2 + headerLen + 1];
-				ByteString messageByteString = ByteString.copyFrom(
-						packet.getData(), 2 + headerLen + 2, messageLen);
-				DriverMsg message;
+                byte[] packetBytes = packet.getData();
 
-				if (!header.hasDeviceType() || !header.hasDeviceID()
-						|| header.getDeviceType() == 0) {
-					message = DriverMsg.parseFrom(messageByteString);
-					handleMessageFromMediator(header, message);
+                int headerLen = (packetBytes[0] << 8) | packetBytes[1];
+                ByteString headerByteString = ByteString.copyFrom(
+                        packet.getData(), 2, headerLen);
+                DriverHdr header = DriverHdr.parseFrom(headerByteString);
 
-				} else {
-					clientProxy = proxyMap.get(new MultiKey(header
-							.getDeviceType(), header.getDeviceID()));
+                int messageLen = (packetBytes[2 + headerLen] << 8)
+                        | packetBytes[2 + headerLen + 1];
+                ByteString messageByteString = ByteString.copyFrom(
+                        packet.getData(), 2 + headerLen + 2, messageLen);
+                DriverMsg message;
 
-					if (clientProxy == null) {
-						logger.warning(String.format(
-								"Client proxy with given device type (%d) and ID (%d) not found, "
-										+ "ignoring message.",
-								header.getDeviceType(), header.getDeviceID()));
-						continue;
-					}
+                if (!header.hasDeviceType() || !header.hasDeviceID()
+                        || header.getDeviceType() == 0) {
+                    message = DriverMsg.parseFrom(messageByteString);
+                    handleMessageFromMediator(header, message);
 
-					message = DriverMsg.parseFrom(messageByteString,
-							clientProxy.getExtensionRegistry());
-					handleMessageFromDriver(header, message, clientProxy);
-				}
+                } else {
+                    clientProxy = proxyMap.get(new MultiKey(header
+                            .getDeviceType(), header.getDeviceID()));
 
-			} catch (InvalidProtocolBufferException ex) {
-				logger.warning("Error in parsing the message, ignoring.");
+                    if (clientProxy == null) {
+                        logger.warning(String.format(
+                                "Client proxy with given device type (%d) and ID (%d) not found, "
+                                        + "ignoring message.",
+                                header.getDeviceType(), header.getDeviceID()));
+                        continue;
+                    }
 
-			} catch (IOException e) {
+                    message = DriverMsg.parseFrom(messageByteString,
+                            clientProxy.getExtensionRegistry());
+                    handleMessageFromDriver(header, message, clientProxy);
+                }
 
-				if (socket.isClosed()) {
-					logger.fine("Socket closed, exiting.");
-					return;
-				}
+            } catch (InvalidProtocolBufferException ex) {
+                logger.warning("Error in parsing the message, ignoring.");
 
-				logger.warning("Error in receiving packet: " + e);
-			}
-		}
-	}
+            } catch (IOException e) {
 
-	private void handleMessageFromMediator(DriverHdr header, DriverMsg message) {
+                if (socket.isClosed()) {
+                    logger.fine("Socket closed, exiting.");
+                    return;
+                }
 
-		switch (message.getType()) {
-		case DATA:
-			logger.warning("DATA message came, but device details not set, ignoring.");
-			break;
+                logger.warning("Error in receiving packet: " + e);
+            }
+        }
+    }
 
-		case PING:
-			logger.fine("PING message came, handling.");
-			handlePingMessage(header, message);
-			break;
+    private void handleMessageFromMediator(DriverHdr header, DriverMsg message) {
 
-		case PONG:
-			logger.fine("PONG message came, handling.");
-			handlePongMessage(header, message);
-			break;
+        switch (message.getType()) {
+            case DATA:
+                logger.warning("DATA message came, but device details not set, ignoring.");
+                break;
 
-		case DRIVER_DIED:
-			logger.warning("DRIVER_DIED message came, but device details not set, ignoring.");
-			break;
+            case PING:
+                logger.fine("PING message came, handling.");
+                handlePingMessage(header, message);
+                break;
 
-		default:
-			logger.warning(String.format("Unexpected message came: %s, ignoring.",
-					message.getType().toString()));
-		}
+            case PONG:
+                logger.fine("PONG message came, handling.");
+                handlePongMessage(header, message);
+                break;
 
-	}
+            case DRIVER_DIED:
+                logger.warning("DRIVER_DIED message came, but device details not set, ignoring.");
+                break;
 
-	private void handleMessageFromDriver(DriverHdr header, DriverMsg message,
-			AmberProxy clientProxy) {
+            default:
+                logger.warning(String.format("Unexpected message came: %s, ignoring.",
+                        message.getType().toString()));
+        }
 
-		switch (message.getType()) {
-		case DATA:
-			logger.fine(String.format(
-					"DATA message came for (%d: %d), handling.",
-					clientProxy.deviceType, clientProxy.deviceID));
-			clientProxy.handleDataMsg(header, message);
-			break;
+    }
 
-		case PING:
-			logger.fine(String.format(
-					"PING message came for (%d: %d), handling.",
-					clientProxy.deviceType, clientProxy.deviceID));
-			clientProxy.handlePingMessage(header, message);
-			break;
+    private void handleMessageFromDriver(DriverHdr header, DriverMsg message,
+                                         AmberProxy clientProxy) {
 
-		case PONG:
-			logger.fine(String.format(
-					"PONG message came for (%d: %d), handling.",
-					clientProxy.deviceType, clientProxy.deviceID));
-			clientProxy.handlePongMessage(header, message);
-			break;
+        switch (message.getType()) {
+            case DATA:
+                logger.fine(String.format(
+                        "DATA message came for (%d: %d), handling.",
+                        clientProxy.deviceType, clientProxy.deviceID));
+                clientProxy.handleDataMsg(header, message);
+                break;
 
-		case DRIVER_DIED:
-			logger.fine(String.format(
-					"DRIVER_DIED message came dor (%d: %d), handling.",
-					clientProxy.deviceType, clientProxy.deviceID));
-			clientProxy.handleDriverDiedMessage(header, message);
-			break;
+            case PING:
+                logger.fine(String.format(
+                        "PING message came for (%d: %d), handling.",
+                        clientProxy.deviceType, clientProxy.deviceID));
+                clientProxy.handlePingMessage(header, message);
+                break;
 
-		default:
-			logger.warning(String.format(
-					"Unexpected message came %s for (%d: %d), ignoring.",
-					message.getType().toString(), clientProxy.deviceType,
-					clientProxy.deviceID));
-		}
+            case PONG:
+                logger.fine(String.format(
+                        "PONG message came for (%d: %d), handling.",
+                        clientProxy.deviceType, clientProxy.deviceID));
+                clientProxy.handlePongMessage(header, message);
+                break;
 
-	}
+            case DRIVER_DIED:
+                logger.fine(String.format(
+                        "DRIVER_DIED message came dor (%d: %d), handling.",
+                        clientProxy.deviceType, clientProxy.deviceID));
+                clientProxy.handleDriverDiedMessage(header, message);
+                break;
 
-	synchronized public void sendMessage(DriverHdr header, DriverMsg message)
-			throws IOException {
-		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            default:
+                logger.warning(String.format(
+                        "Unexpected message came %s for (%d: %d), ignoring.",
+                        message.getType().toString(), clientProxy.deviceType,
+                        clientProxy.deviceID));
+        }
 
-		int len;
+    }
 
-		// Header length
-		len = header.getSerializedSize();
-		outputStream.write((byte) (len >> 8) & 0xff);
-		outputStream.write((byte) (len & 0xff));
+    synchronized public void sendMessage(DriverHdr header, DriverMsg message)
+            throws IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 
-		// Header
-		outputStream.write(header.toByteArray());
+        int len;
 
-		// Message length
-		len = message.getSerializedSize();
-		outputStream.write((byte) (len >> 8) & 0xff);
-		outputStream.write((byte) (len & 0xff));
+        // Header length
+        len = header.getSerializedSize();
+        outputStream.write((byte) (len >> 8) & 0xff);
+        outputStream.write((byte) (len & 0xff));
 
-		// Message
-		outputStream.write(message.toByteArray());
+        // Header
+        outputStream.write(header.toByteArray());
 
-		logger.fine(String.format("Sending an UDP packet for (%d: %d).",
-				header.getDeviceType(), header.getDeviceID()));
+        // Message length
+        len = message.getSerializedSize();
+        outputStream.write((byte) (len >> 8) & 0xff);
+        outputStream.write((byte) (len & 0xff));
 
-		DatagramPacket packet = new DatagramPacket(outputStream.toByteArray(),
-				outputStream.size(), address, port);
-		socket.send(packet);
-	}
+        // Message
+        outputStream.write(message.toByteArray());
 
-	private void handlePingMessage(DriverHdr header, DriverMsg message) {
+        logger.fine(String.format("Sending an UDP packet for (%d: %d).",
+                header.getDeviceType(), header.getDeviceID()));
 
-	}
+        DatagramPacket packet = new DatagramPacket(outputStream.toByteArray(),
+                outputStream.size(), address, port);
+        socket.send(packet);
+    }
 
-	private void handlePongMessage(DriverHdr header, DriverMsg message) {
+    private void handlePingMessage(DriverHdr header, DriverMsg message) {
 
-	}
+    }
 
-	public void terminate() {		
-		if (terminated) {
-			return;
-		}
-		
-		terminated = true;
-		
-		logger.info("Terminating.");
-		terminateProxies();
-		socket.close();
-		receivingThread.interrupt();
-	}
+    private void handlePongMessage(DriverHdr header, DriverMsg message) {
 
-	public void terminateProxies() {
-		for (AmberProxy proxy : proxyMap.values()) {
-			proxy.terminateProxy();
-		}
-	}
+    }
+
+    public void terminate() {
+        if (terminated) {
+            return;
+        }
+
+        terminated = true;
+
+        logger.info("Terminating.");
+        terminateProxies();
+        socket.close();
+        receivingThread.interrupt();
+    }
+
+    public void terminateProxies() {
+        for (AmberProxy proxy : proxyMap.values()) {
+            proxy.terminateProxy();
+        }
+    }
 
 }
