@@ -43,8 +43,7 @@ public class NinedofProxy extends AmberProxy {
      *                    be 0)
      */
     public NinedofProxy(AmberClient amberClient, int deviceID) {
-        super(DEVICE_TYPE, deviceID, amberClient, Logger
-                .getLogger("NinedofProxy"));
+        super(DEVICE_TYPE, deviceID, amberClient, Logger.getLogger(String.valueOf(NinedofProxy.class)));
 
         logger.info("Starting and registering NinedofProxy.");
 
@@ -62,13 +61,10 @@ public class NinedofProxy extends AmberProxy {
      * @param listener {@link CyclicDataListener} instance to handle new data
      * @throws IOException thrown on connection problems.
      */
-    public void registerNinedofDataListener(int freq, boolean accel,
-                                            boolean gyro, boolean magnet,
+    public void registerNinedofDataListener(int freq, boolean accel, boolean gyro, boolean magnet,
                                             CyclicDataListener<NinedofData> listener) throws IOException {
 
-        logger.fine(String.format(
-                "Registering NinedofDataListener, freq: %d, a:%s, g:%s, m:%s.",
-                freq, accel, gyro, magnet));
+        logger.fine(String.format("Registering NinedofDataListener, freq: %d, a:%s, g:%s, m:%s.", freq, accel, gyro, magnet));
 
         DriverMsg driverMsg = buildSubscribeActionMsg(freq, accel, gyro, magnet);
 
@@ -103,15 +99,12 @@ public class NinedofProxy extends AmberProxy {
      * @return returns {@link NinedofData} with latest sensor's data.
      * @throws IOException thrown on connection problem.
      */
-    public NinedofData getAxesData(boolean accel, boolean gyro, boolean magnet)
-            throws IOException {
+    public NinedofData getAxesData(boolean accel, boolean gyro, boolean magnet) throws IOException {
         int synNum = getNextSynNum();
 
-        logger.fine(String.format("Pulling NinedofData, a:%s, g:%s, m:%s.",
-                accel, gyro, magnet));
+        logger.fine(String.format("Pulling NinedofData, a:%s, g:%s, m:%s.", accel, gyro, magnet));
 
-        DriverMsg dataRequestMsg = buildDataRequestMsg(synNum, accel, gyro,
-                magnet);
+        DriverMsg dataRequestMsg = buildDataRequestMsg(synNum, accel, gyro, magnet);
 
         NinedofData ninedofData = new NinedofData();
         futureObjectsMap.put(synNum, ninedofData);
@@ -123,8 +116,9 @@ public class NinedofProxy extends AmberProxy {
 
     @Override
     public void handleDataMsg(DriverHdr header, DriverMsg message) {
-        if (!message.hasAckNum() || message.getAckNum() == 0) {
+        logger.fine("Handling data message");
 
+        if (!message.hasAckNum() || message.getAckNum() == 0) {
             NinedofData ninedofData = new NinedofData();
             fillStructure(ninedofData, message);
             ninedofData.setAvailable();
@@ -140,11 +134,11 @@ public class NinedofProxy extends AmberProxy {
 
             // TODO: automatically removing abandoned futureObjects
             if (futureObjectsMap.containsKey(ackNum)) {
-                NinedofData ninedofData = (NinedofData) futureObjectsMap
-                        .remove(ackNum);
+                FutureObject ninedofData = futureObjectsMap.remove(ackNum);
 
-                fillStructure(ninedofData, message);
-                ninedofData.setAvailable();
+                if (ninedofData instanceof NinedofData) {
+                    fillStructure((NinedofData) ninedofData, message);
+                }
             }
         }
     }
@@ -154,31 +148,25 @@ public class NinedofProxy extends AmberProxy {
         return extensionRegistry;
     }
 
-    synchronized private int getNextSynNum() {
+    private synchronized int getNextSynNum() {
         return synNum++;
     }
 
     private void fillStructure(NinedofData ninedofData, DriverMsg message) {
         SensorData sensorData = message.getExtension(NinedofProto.sensorData);
 
-        ninedofData.setAccel(new NinedofData.AxesData(sensorData.getAccel()
-                .getXAxis(), sensorData.getAccel().getYAxis(), sensorData
-                .getAccel().getZAxis()));
+        ninedofData.setAccel(new NinedofData.AxesData(sensorData.getAccel().getXAxis(),
+                sensorData.getAccel().getYAxis(), sensorData.getAccel().getZAxis()));
+        ninedofData.setGyro(new NinedofData.AxesData(sensorData.getGyro().getXAxis(),
+                sensorData.getGyro().getYAxis(), sensorData.getGyro().getZAxis()));
+        ninedofData.setMagnet(new NinedofData.AxesData(sensorData.getMagnet().getXAxis(),
+                sensorData.getMagnet().getYAxis(), sensorData.getMagnet().getZAxis()));
 
-        ninedofData.setGyro(new NinedofData.AxesData(sensorData.getGyro()
-                .getXAxis(), sensorData.getGyro().getYAxis(), sensorData
-                .getGyro().getZAxis()));
-
-        ninedofData.setMagnet(new NinedofData.AxesData(sensorData.getMagnet()
-                .getXAxis(), sensorData.getMagnet().getYAxis(), sensorData
-                .getMagnet().getZAxis()));
+        ninedofData.setAvailable();
     }
 
-    private DriverMsg buildSubscribeActionMsg(int freq, boolean accel,
-                                              boolean gyro, boolean magnet) {
-
-        SubscribeAction.Builder subscribeActionBuilder = SubscribeAction
-                .newBuilder();
+    private DriverMsg buildSubscribeActionMsg(int freq, boolean accel, boolean gyro, boolean magnet) {
+        SubscribeAction.Builder subscribeActionBuilder = SubscribeAction.newBuilder();
         subscribeActionBuilder.setFreq(freq);
         subscribeActionBuilder.setAccel(accel);
         subscribeActionBuilder.setGyro(gyro);
@@ -186,15 +174,12 @@ public class NinedofProxy extends AmberProxy {
 
         DriverMsg.Builder driverMsgBuilder = DriverMsg.newBuilder();
         driverMsgBuilder.setType(DriverMsg.MsgType.DATA);
-        driverMsgBuilder.setExtension(NinedofProto.subscribeAction,
-                subscribeActionBuilder.build());
+        driverMsgBuilder.setExtension(NinedofProto.subscribeAction, subscribeActionBuilder.build());
 
         return driverMsgBuilder.build();
     }
 
-    private DriverMsg buildDataRequestMsg(int synNum, boolean accel,
-                                          boolean gyro, boolean magnet) {
-
+    private DriverMsg buildDataRequestMsg(int synNum, boolean accel, boolean gyro, boolean magnet) {
         DataRequest.Builder dataRequestBuilder = DataRequest.newBuilder();
         dataRequestBuilder.setAccel(accel);
         dataRequestBuilder.setGyro(gyro);
@@ -202,8 +187,7 @@ public class NinedofProxy extends AmberProxy {
 
         DriverMsg.Builder driverMsgBuilder = DriverMsg.newBuilder();
         driverMsgBuilder.setType(DriverMsg.MsgType.DATA);
-        driverMsgBuilder.setExtension(NinedofProto.dataRequest,
-                dataRequestBuilder.build());
+        driverMsgBuilder.setExtension(NinedofProto.dataRequest, dataRequestBuilder.build());
 
         driverMsgBuilder.setSynNum(synNum);
 

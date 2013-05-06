@@ -34,7 +34,7 @@ public class AmberClient {
     private Map<MultiKey, AmberProxy> proxyMap = new HashMap<MultiKey, AmberProxy>();
     private Thread receivingThread;
 
-    private static Logger logger = Logger.getLogger("AmberClient");
+    private static Logger logger = Logger.getLogger(String.valueOf(AmberClient.class));
 
     /**
      * Instantiates AmberClient object.
@@ -154,8 +154,7 @@ public class AmberClient {
     }
 
     private void messageReceivingLoop() {
-        DatagramPacket packet = new DatagramPacket(
-                new byte[RECEIVING_BUFFER_SIZE], RECEIVING_BUFFER_SIZE);
+        DatagramPacket packet = new DatagramPacket(new byte[RECEIVING_BUFFER_SIZE], RECEIVING_BUFFER_SIZE);
         AmberProxy clientProxy = null;
 
         while (true) {
@@ -166,35 +165,27 @@ public class AmberClient {
                 byte[] packetBytes = packet.getData();
 
                 int headerLen = (packetBytes[0] << 8) | packetBytes[1];
-                ByteString headerByteString = ByteString.copyFrom(
-                        packet.getData(), 2, headerLen);
+                ByteString headerByteString = ByteString.copyFrom(packet.getData(), 2, headerLen);
                 DriverHdr header = DriverHdr.parseFrom(headerByteString);
 
-                int messageLen = (packetBytes[2 + headerLen] << 8)
-                        | packetBytes[2 + headerLen + 1];
-                ByteString messageByteString = ByteString.copyFrom(
-                        packet.getData(), 2 + headerLen + 2, messageLen);
+                int messageLen = (packetBytes[2 + headerLen] << 8) | packetBytes[2 + headerLen + 1];
+                ByteString messageByteString = ByteString.copyFrom(packet.getData(), 2 + headerLen + 2, messageLen);
                 DriverMsg message;
 
-                if (!header.hasDeviceType() || !header.hasDeviceID()
-                        || header.getDeviceType() == 0) {
+                if (!header.hasDeviceType() || !header.hasDeviceID() || header.getDeviceType() == 0) {
                     message = DriverMsg.parseFrom(messageByteString);
                     handleMessageFromMediator(header, message);
 
                 } else {
-                    clientProxy = proxyMap.get(new MultiKey(header
-                            .getDeviceType(), header.getDeviceID()));
+                    clientProxy = proxyMap.get(new MultiKey(header.getDeviceType(), header.getDeviceID()));
 
                     if (clientProxy == null) {
-                        logger.warning(String.format(
-                                "Client proxy with given device type (%d) and ID (%d) not found, "
-                                        + "ignoring message.",
-                                header.getDeviceType(), header.getDeviceID()));
+                        logger.warning(String.format("Client proxy with given device type (%d) and ID (%d) not found, "
+                                + "ignoring message.", header.getDeviceType(), header.getDeviceID()));
                         continue;
                     }
 
-                    message = DriverMsg.parseFrom(messageByteString,
-                            clientProxy.getExtensionRegistry());
+                    message = DriverMsg.parseFrom(messageByteString, clientProxy.getExtensionRegistry());
                     handleMessageFromDriver(header, message, clientProxy);
                 }
 
@@ -202,12 +193,10 @@ public class AmberClient {
                 logger.warning("Error in parsing the message, ignoring.");
 
             } catch (IOException e) {
-
                 if (socket.isClosed()) {
                     logger.fine("Socket closed, exiting.");
                     return;
                 }
-
                 logger.warning("Error in receiving packet: " + e);
             }
         }

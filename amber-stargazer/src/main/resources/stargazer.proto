@@ -1,0 +1,21 @@
+package amber.stargazer_proto;
+option java_package = "pl.edu.agh.amber.stargazer.proto";
+option java_outer_classname = "StarGazerProto";
+
+import "drivermsg.proto";
+
+extend amber.DriverMsg {
+    optional SensorData sensorData = 10;
+    optional bool dataRequest = 11;
+    optional SubscribeAction subscribeAction = 12;
+}
+
+message SensorData {
+    optional sint32 xAxis = 1;
+    optional sint32 yAxis = 2;
+    optional sint32 angel = 3;
+}
+
+message SubscribeAction {
+    optional uint32 freq = 1;
+}

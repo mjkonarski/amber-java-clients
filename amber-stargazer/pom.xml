@@ -1,31 +1,16 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>pl.edu.agh.amber.navi</groupId>
-    <artifactId>amber-navi</artifactId>
+    <groupId>pl.edu.agh.amber.stargazer</groupId>
+    <artifactId>amber-stargazer</artifactId>
     <packaging>jar</packaging>
     <version>1.0-SNAPSHOT</version>
-    <name>amber-navi</name>
+    <name>amber-stargazer</name>
     <url>http://maven.apache.org</url>
     <dependencies>
         <dependency>
             <groupId>pl.edu.agh.amber.common</groupId>
             <artifactId>amber-common</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>pl.edu.agh.amber.ninedof</groupId>
-            <artifactId>amber-ninedof</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>pl.edu.agh.amber.roboclaw</groupId>
-            <artifactId>amber-roboclaw</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>pl.edu.agh.amber.stargazer</groupId>
-            <artifactId>amber-stargazer</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
     </dependencies>

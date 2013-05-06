@@ -37,8 +37,7 @@ public class RoboclawProxy extends AmberProxy {
      *                    should be 0)
      */
     public RoboclawProxy(AmberClient amberClient, int deviceID) {
-        super(DEVICE_TYPE, deviceID, amberClient, Logger
-                .getLogger("RoboclawProxy"));
+        super(DEVICE_TYPE, deviceID, amberClient, Logger.getLogger(String.valueOf(RoboclawProxy.class)));
 
         logger.info("Starting and registering RoboclawProxy.");
 
@@ -48,7 +47,6 @@ public class RoboclawProxy extends AmberProxy {
 
     /**
      * Used to send speed command to robot's motors. All values are in mm/s.
-     * <p/>
      * This request takes about 6ms to complete on robot.
      *
      * @param frontLeftSpeed  front left motors's speed
@@ -57,8 +55,9 @@ public class RoboclawProxy extends AmberProxy {
      * @param rearRightSpeed  rear right motors's speed
      * @throws IOException thrown on connection problems
      */
-    public void sendMotorsCommand(int frontLeftSpeed, int frontRightSpeed,
-                                  int rearLeftSpeed, int rearRightSpeed) throws IOException {
+    public void sendMotorsCommand(int frontLeftSpeed, int frontRightSpeed, int rearLeftSpeed, int rearRightSpeed)
+            throws IOException {
+
         logger.fine(String.format("Sending MotorsCommand: %d %d %d %d.",
                 frontLeftSpeed, frontRightSpeed, rearLeftSpeed, rearRightSpeed));
 
@@ -107,6 +106,7 @@ public class RoboclawProxy extends AmberProxy {
         logger.fine("Handling data message");
 
         if (!message.hasAckNum() || message.getAckNum() == 0) {
+            // nothing to do here
 
         } else {
             int ackNum = message.getAckNum();
@@ -116,8 +116,7 @@ public class RoboclawProxy extends AmberProxy {
                 FutureObject futureObject = futureObjectsMap.remove(ackNum);
 
                 if (futureObject instanceof MotorsCurrentSpeed) {
-                    fillMotorsCurrentSpeed((MotorsCurrentSpeed) futureObject,
-                            message);
+                    fillStructure((MotorsCurrentSpeed) futureObject, message);
                 }
             }
         }
@@ -129,12 +128,11 @@ public class RoboclawProxy extends AmberProxy {
         return extensionRegistry;
     }
 
-    synchronized private int getNextSynNum() {
+    private synchronized int getNextSynNum() {
         return synNum++;
     }
 
-    private void fillMotorsCurrentSpeed(MotorsCurrentSpeed mcs,
-                                        DriverMsg message) {
+    private void fillStructure(MotorsCurrentSpeed mcs, DriverMsg message) {
         MotorsSpeed inputMcs = message.getExtension(RoboclawProto.currentSpeed);
 
         mcs.setFrontLeftSpeed(inputMcs.getFrontLeftSpeed());
@@ -146,7 +144,6 @@ public class RoboclawProxy extends AmberProxy {
     }
 
     private DriverMsg buildCurrentSpeedRequestMsg(int synNum) {
-
         DriverMsg.Builder driverMsgBuilder = DriverMsg.newBuilder();
         driverMsgBuilder.setType(DriverMsg.MsgType.DATA);
         driverMsgBuilder.setExtension(RoboclawProto.currentSpeedRequest, true);
