@@ -13,7 +13,6 @@
         <module>amber-roboclaw</module>
         <module>amber-ninedof</module>
         <module>amber-stargazer</module>
-        <module>amber-navi</module>
     </modules>
 
     <pluginRepositories>
