@@ -4,6 +4,7 @@ import pl.edu.agh.amber.navi.drive.NaviDriveHelper;
 import pl.edu.agh.amber.navi.eye.NaviEyeHelper;
 import pl.edu.agh.amber.navi.track.NaviTrackHelper;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -68,16 +69,28 @@ public class NaviAgent implements Runnable {
 
     @Override
     public void run() {
-        NaviPoint point;
+        NaviPoint nextTarget, currentLocation;
+        NaviAdjustment adjustment;
         try {
             while (isRunning()) {
                 synchronized (route) {
                     while (route.isEmpty()) {
                         route.wait();
                     }
-                    point = route.remove(0);
+                    nextTarget = route.remove(0);
                 }
+                currentLocation = trackHelper.getCurrentLocation();
+                while (!isTargetInTarget(currentLocation, nextTarget)) {
+                    adjustment = getAdjustment(currentLocation, nextTarget);
+                    try {
+                        driveHelper.change(adjustment.getAngle(), adjustment.getLength());
+                    } catch (IOException e) {
+                        logger.warning("Cannot change drive parameters: " + e.getMessage());
+                    }
 
+                    Thread.sleep(100);
+                    currentLocation = trackHelper.getCurrentLocation();
+                }
             }
         } catch (InterruptedException e) {
             logger.warning("NaviAgent interrupted: " + e.getMessage());
@@ -96,5 +109,20 @@ public class NaviAgent implements Runnable {
             }
         }
         return index;
+    }
+
+    private static boolean isTargetInTarget(NaviPoint currentLocation, NaviPoint target) {
+        double horizontal = Math.pow(target.getAbsoluteHorizontal() - currentLocation.getAbsoluteHorizontal(), 2.0);
+        double vertical = Math.pow(target.getAbsoluteVertical() - currentLocation.getAbsoluteVertical(), 2.0);
+        double radius = Math.pow(target.getRadius(), 2.0);
+        return (horizontal + vertical <= radius);
+    }
+
+    private static NaviAdjustment getAdjustment(NaviPoint currentLocation, NaviPoint target) {
+        double horizontal = currentLocation.getAbsoluteHorizontal() - target.getAbsoluteHorizontal();
+        double vertical = currentLocation.getAbsoluteVertical() - target.getAbsoluteVertical();
+        double angle = Math.tanh(vertical / horizontal) - 90.0;
+        double length = Math.sqrt(Math.pow(horizontal, 2.0) + Math.pow(vertical, 2.0));
+        return new NaviAdjustment(currentLocation, angle, length);
     }
 }

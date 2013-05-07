@@ -1,5 +1,6 @@
 package pl.edu.agh.amber.navi.track;
 
+import pl.edu.agh.amber.navi.agent.NaviPoint;
 import pl.edu.agh.amber.ninedof.NinedofProxy;
 import pl.edu.agh.amber.stargazer.StarGazerProxy;
 
@@ -12,5 +13,10 @@ public class AmberNaviTrack extends NaviTrackHelper {
     public AmberNaviTrack(StarGazerProxy starGazerProxy, NinedofProxy ninedofProxy) {
         this.starGazerProxy = starGazerProxy;
         this.ninedofProxy = ninedofProxy;
+    }
+
+    @Override
+    public NaviPoint getCurrentLocation() {
+        return null;
     }
 }

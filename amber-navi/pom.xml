@@ -28,6 +28,11 @@
             <artifactId>amber-stargazer</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>net.sf.marineapi</groupId>
+            <artifactId>marineapi</artifactId>
+            <version>0.6.0-SNAPSHOT</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
