@@ -1,7 +1,6 @@
 package pl.edu.agh.amber.navi.drive;
 
-import pl.edu.agh.amber.navi.agent.NaviAdjustment;
-import pl.edu.agh.amber.roboclaw.MotorsCurrentSpeed;
+import pl.edu.agh.amber.navi.dto.NaviMovement;
 import pl.edu.agh.amber.roboclaw.RoboclawProxy;
 
 import java.io.IOException;
@@ -28,21 +27,37 @@ public class AmberNaviDrive extends NaviDriveHelper {
     }
 
     @Override
-    public void change(double changeAngle, double changeSpeed) throws IOException {
-        this.currentAngle += changeAngle;
-        this.currentSpeed += changeSpeed;
+    public void change(NaviMovement movement) throws IOException {
+        this.currentAngle += movement.getAngle();
+        this.currentSpeed += movement.getSpeed();
 
-        int frontLeft = 0, frontRight = 0, rearLeft = 0, rearRight = 0;
-
-        MotorsCurrentSpeed mcs = roboclawProxy.getCurrentMotorsSpeed();
+        int frontLeft = getFrontLeft(currentAngle, currentSpeed), frontRight = getFrontRight(currentAngle, currentSpeed),
+                rearLeft = getRearLeft(currentAngle, currentSpeed), rearRight = getRearRight(currentAngle, currentSpeed);
 
         roboclawProxy.sendMotorsCommand(frontLeft, frontRight, rearLeft, rearRight);
     }
 
-    @Override
-    public void change(NaviAdjustment adjustment) throws IOException {
-        // paoolo FIXME it will detect speed to adjust
-        change(adjustment.getAngle(), adjustment.getLength());
+    private static int getLeft(double angle, double speed) {
+        return 0;
     }
 
+    private static int getRight(double angle, double speed) {
+        return 0;
+    }
+
+    private static int getFrontLeft(double angle, double speed) {
+        return getLeft(angle, speed);
+    }
+
+    private static int getFrontRight(double angle, double speed) {
+        return getRight(angle, speed);
+    }
+
+    private static int getRearLeft(double angle, double speed) {
+        return getLeft(angle, speed);
+    }
+
+    private static int getRearRight(double angle, double speed) {
+        return getRight(angle, speed);
+    }
 }

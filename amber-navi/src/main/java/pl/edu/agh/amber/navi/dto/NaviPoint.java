@@ -1,4 +1,4 @@
-package pl.edu.agh.amber.navi.agent;
+package pl.edu.agh.amber.navi.dto;
 
 public final class NaviPoint {
 
@@ -17,6 +17,11 @@ public final class NaviPoint {
         this(null, horizontal, vertical, radius);
     }
 
+    public NaviPoint(double horizontal, double vertical) {
+        this(null, horizontal, vertical, 0.0);
+    }
+
+    @SuppressWarnings("unused")
     public double getHorizontal() {
         return horizontal;
     }
@@ -25,6 +30,7 @@ public final class NaviPoint {
         return this.horizontal + (referenceCenter != null ? referenceCenter.getAbsoluteHorizontal() : 0.0);
     }
 
+    @SuppressWarnings("unused")
     public double getVertical() {
         return vertical;
     }
@@ -37,6 +43,7 @@ public final class NaviPoint {
         return radius;
     }
 
+    @SuppressWarnings("unused")
     public NaviPoint getAbsolutePoint() {
         return new NaviPoint(this.horizontal + (referenceCenter != null ? referenceCenter.getAbsoluteHorizontal() : 0.0),
                 this.vertical + (referenceCenter != null ? referenceCenter.getAbsoluteVertical() : 0.0), this.radius);

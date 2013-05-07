@@ -1,6 +1,8 @@
 package pl.edu.agh.amber.navi.agent;
 
 import pl.edu.agh.amber.navi.drive.NaviDriveHelper;
+import pl.edu.agh.amber.navi.dto.NaviMovement;
+import pl.edu.agh.amber.navi.dto.NaviPoint;
 import pl.edu.agh.amber.navi.eye.NaviEyeHelper;
 import pl.edu.agh.amber.navi.track.NaviTrackHelper;
 
@@ -70,7 +72,7 @@ public class NaviAgent implements Runnable {
     @Override
     public void run() {
         NaviPoint nextTarget, currentLocation;
-        NaviAdjustment adjustment;
+        NaviMovement adjustment;
         try {
             while (isRunning()) {
                 synchronized (route) {
@@ -79,17 +81,17 @@ public class NaviAgent implements Runnable {
                     }
                     nextTarget = route.remove(0);
                 }
-                currentLocation = trackHelper.getCurrentLocation();
+                currentLocation = trackHelper.getLocation();
                 while (!isTargetInTarget(currentLocation, nextTarget)) {
                     adjustment = getAdjustment(currentLocation, nextTarget);
                     try {
-                        driveHelper.change(adjustment.getAngle(), adjustment.getLength());
+                        driveHelper.change(adjustment.getAngle(), adjustment.getSpeed());
                     } catch (IOException e) {
                         logger.warning("Cannot change drive parameters: " + e.getMessage());
                     }
 
                     Thread.sleep(100);
-                    currentLocation = trackHelper.getCurrentLocation();
+                    currentLocation = trackHelper.getLocation();
                 }
             }
         } catch (InterruptedException e) {
@@ -118,11 +120,11 @@ public class NaviAgent implements Runnable {
         return (horizontal + vertical <= radius);
     }
 
-    private static NaviAdjustment getAdjustment(NaviPoint currentLocation, NaviPoint target) {
+    private static NaviMovement getAdjustment(NaviPoint currentLocation, NaviPoint target) {
         double horizontal = currentLocation.getAbsoluteHorizontal() - target.getAbsoluteHorizontal();
         double vertical = currentLocation.getAbsoluteVertical() - target.getAbsoluteVertical();
         double angle = Math.tanh(vertical / horizontal) - 90.0;
         double length = Math.sqrt(Math.pow(horizontal, 2.0) + Math.pow(vertical, 2.0));
-        return new NaviAdjustment(currentLocation, angle, length);
+        return new NaviMovement(currentLocation, angle, length);
     }
 }

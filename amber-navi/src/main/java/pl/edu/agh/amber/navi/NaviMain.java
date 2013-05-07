@@ -5,22 +5,19 @@ import gnu.io.PortInUseException;
 import gnu.io.UnsupportedCommOperationException;
 import pl.edu.agh.amber.common.AmberClient;
 import pl.edu.agh.amber.navi.agent.NaviAgent;
-import pl.edu.agh.amber.navi.agent.NaviPoint;
 import pl.edu.agh.amber.navi.drive.AmberNaviDrive;
 import pl.edu.agh.amber.navi.drive.DummyNaviDrive;
 import pl.edu.agh.amber.navi.drive.NaviDriveHelper;
+import pl.edu.agh.amber.navi.dto.NaviPoint;
 import pl.edu.agh.amber.navi.eye.DummyNaviEye;
 import pl.edu.agh.amber.navi.eye.HokuyoNaviEye;
 import pl.edu.agh.amber.navi.eye.NaviEyeHelper;
 import pl.edu.agh.amber.navi.tool.SerialPortHelper;
 import pl.edu.agh.amber.navi.tool.SerialPortWrapper;
-import pl.edu.agh.amber.navi.track.AmberNaviTrack;
 import pl.edu.agh.amber.navi.track.DummyNaviTrack;
 import pl.edu.agh.amber.navi.track.HoluxNaviTrack;
 import pl.edu.agh.amber.navi.track.NaviTrackHelper;
-import pl.edu.agh.amber.ninedof.NinedofProxy;
 import pl.edu.agh.amber.roboclaw.RoboclawProxy;
-import pl.edu.agh.amber.stargazer.StarGazerProxy;
 
 import java.io.*;
 import java.util.LinkedList;
@@ -77,9 +74,7 @@ public class NaviMain {
         List<NaviPoint> route = parseTrack(NaviConfig.getTrack(), referenceCenter);
 
         AmberClient amberClient = new AmberClient(hostname, port);
-        NinedofProxy ninedofProxy = new NinedofProxy(amberClient, 0);
         RoboclawProxy roboclawProxy = new RoboclawProxy(amberClient, 0);
-        StarGazerProxy starGazerProxy = new StarGazerProxy(amberClient, 0);
 
         NaviDriveHelper driveHelper;
         NaviTrackHelper trackHelper;
@@ -94,9 +89,6 @@ public class NaviMain {
                 break;
         }
         switch (NaviConfig.getTrackHelperType()) {
-            case AMBER:
-                trackHelper = new AmberNaviTrack(starGazerProxy, ninedofProxy);
-                break;
             case HOLUX:
                 SerialPortWrapper holuxSerialPortWrapper = SerialPortHelper.getSerialPort(holuxPortName, OWNER, 30);
                 trackHelper = new HoluxNaviTrack(holuxSerialPortWrapper);

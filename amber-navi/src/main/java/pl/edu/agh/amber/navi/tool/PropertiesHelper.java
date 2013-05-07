@@ -7,6 +7,7 @@ import java.util.Properties;
 
 public class PropertiesHelper {
 
+    @SuppressWarnings("unused")
     public static Properties loadProperties(Properties properties, Class<?> baseClass, String... propertiesName) {
         if (properties == null) {
             properties = new Properties();
@@ -17,6 +18,7 @@ public class PropertiesHelper {
         return properties;
     }
 
+    @SuppressWarnings("unused")
     public static Properties loadProperties(Properties properties, String... paths) {
         if (properties == null) {
             properties = new Properties();
@@ -37,7 +39,7 @@ public class PropertiesHelper {
             properties.load(in);
 
         } catch (IOException e) {
-            System.err.println("Could not load propeties for bundle " + bundle);
+            System.err.println("Could not load properties for bundle " + bundle);
             e.printStackTrace();
 
         } finally {
@@ -62,7 +64,7 @@ public class PropertiesHelper {
             properties.load(in);
 
         } catch (IOException e) {
-            System.err.println("Could not load propeties for file " + path);
+            System.err.println("Could not load properties for file " + path);
             e.printStackTrace();
 
         } finally {
