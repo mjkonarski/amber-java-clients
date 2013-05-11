@@ -11,9 +11,7 @@ public class SerialPortWrapper {
     private final SerialPort sp;
 
     private final InputStream is;
-
     private final InputStreamReader isr;
-
     private final BufferedReader buf;
 
     public SerialPortWrapper(SerialPort sp, InputStream is, InputStreamReader isr, BufferedReader buf) {
