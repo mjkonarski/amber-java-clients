@@ -2,22 +2,21 @@ package pl.edu.agh.amber.navi;
 
 import gnu.io.NoSuchPortException;
 import gnu.io.PortInUseException;
+import gnu.io.SerialPort;
 import gnu.io.UnsupportedCommOperationException;
 import pl.edu.agh.amber.common.AmberClient;
 import pl.edu.agh.amber.navi.agent.NaviAgent;
 import pl.edu.agh.amber.navi.drive.AmberNaviDrive;
-import pl.edu.agh.amber.navi.drive.DummyNaviDrive;
 import pl.edu.agh.amber.navi.drive.NaviDriveHelper;
 import pl.edu.agh.amber.navi.dto.NaviPoint;
-import pl.edu.agh.amber.navi.eye.DummyNaviEye;
 import pl.edu.agh.amber.navi.eye.HokuyoNaviEye;
 import pl.edu.agh.amber.navi.eye.NaviEyeHelper;
 import pl.edu.agh.amber.navi.tool.SerialPortHelper;
-import pl.edu.agh.amber.navi.tool.SerialPortWrapper;
-import pl.edu.agh.amber.navi.track.DummyNaviTrack;
+import pl.edu.agh.amber.navi.track.AmberNaviTrack;
 import pl.edu.agh.amber.navi.track.HoluxNaviTrack;
 import pl.edu.agh.amber.navi.track.NaviTrackHelper;
 import pl.edu.agh.amber.roboclaw.RoboclawProxy;
+import pl.edu.agh.amber.stargazer.StarGazerProxy;
 
 import java.io.*;
 import java.util.LinkedList;
@@ -75,36 +74,26 @@ public class NaviMain {
 
         AmberClient amberClient = new AmberClient(hostname, port);
         RoboclawProxy roboclawProxy = new RoboclawProxy(amberClient, 0);
+        StarGazerProxy starGazerProxy = new StarGazerProxy(amberClient, 0);
 
         NaviDriveHelper driveHelper;
         NaviTrackHelper trackHelper;
         NaviEyeHelper eyeHelper;
 
-        switch (NaviConfig.getDriveHelperType()) {
-            case AMBER:
-                driveHelper = new AmberNaviDrive(roboclawProxy);
-                break;
-            default:
-                driveHelper = new DummyNaviDrive();
-                break;
-        }
+        driveHelper = new AmberNaviDrive(roboclawProxy);
+
         switch (NaviConfig.getTrackHelperType()) {
             case HOLUX:
-                SerialPortWrapper holuxSerialPortWrapper = SerialPortHelper.getSerialPort(holuxPortName, OWNER, 30);
+                SerialPort holuxSerialPortWrapper = SerialPortHelper.getHoluxSerialPort(holuxPortName);
                 trackHelper = new HoluxNaviTrack(holuxSerialPortWrapper);
                 break;
             default:
-                trackHelper = new DummyNaviTrack();
+                trackHelper = new AmberNaviTrack(starGazerProxy);
                 break;
         }
-        switch (NaviConfig.getEyeHelperType()) {
-            case HOKUYO:
-                SerialPortWrapper hokuyoSerialPortWrapper = SerialPortHelper.getSerialPort(hokuyoPortName, OWNER, 31);
-                eyeHelper = new HokuyoNaviEye(hokuyoSerialPortWrapper);
-                break;
-            default:
-                eyeHelper = new DummyNaviEye();
-        }
+
+        SerialPort hokuyoSerialPortWrapper = SerialPortHelper.getHokuyoSerialPort(hokuyoPortName);
+        eyeHelper = new HokuyoNaviEye(hokuyoSerialPortWrapper);
 
         NaviAgent naviAgent = new NaviAgent(driveHelper, trackHelper, eyeHelper);
         naviAgent.addLastPoints(route);

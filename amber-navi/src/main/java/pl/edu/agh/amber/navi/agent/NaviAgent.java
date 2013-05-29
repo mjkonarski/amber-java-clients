@@ -3,6 +3,7 @@ package pl.edu.agh.amber.navi.agent;
 import pl.edu.agh.amber.navi.drive.NaviDriveHelper;
 import pl.edu.agh.amber.navi.dto.NaviMovement;
 import pl.edu.agh.amber.navi.dto.NaviPoint;
+import pl.edu.agh.amber.navi.dto.NaviVisibility;
 import pl.edu.agh.amber.navi.eye.NaviEyeHelper;
 import pl.edu.agh.amber.navi.track.NaviTrackHelper;
 
@@ -40,6 +41,7 @@ public class NaviAgent implements Runnable {
         return running;
     }
 
+    @SuppressWarnings("unused")
     public void addLastPoint(NaviPoint point) {
         synchronized (route) {
             route.add(point);
@@ -54,6 +56,7 @@ public class NaviAgent implements Runnable {
         }
     }
 
+    @SuppressWarnings("unused")
     public void addAfterPoint(NaviPoint point, NaviPoint after) {
         synchronized (route) {
             route.add(getIndex(after), point);
@@ -61,6 +64,7 @@ public class NaviAgent implements Runnable {
         }
     }
 
+    @SuppressWarnings("unused")
     public void addAfterPoints(List<NaviPoint> points, NaviPoint after) {
         synchronized (route) {
             route.addAll(getIndex(after), points);
@@ -70,23 +74,33 @@ public class NaviAgent implements Runnable {
 
     @Override
     public void run() {
-        NaviPoint nextTarget, currentLocation;
+        int time = 1000;
+        NaviPoint target, location;
+        NaviVisibility visibility;
+        NaviMovement movement;
         try {
             while (isRunning()) {
                 synchronized (route) {
                     while (route.isEmpty()) {
                         route.wait();
                     }
-                    nextTarget = route.remove(0);
+                    target = route.remove(0);
                 }
 
                 do {
-                    Thread.sleep(100);
-                    currentLocation = trackHelper.getLocation();
-                } while (!isTargetInTarget(currentLocation, nextTarget));
+                    location = trackHelper.getLocation();
+                    visibility = eyeHelper.getVisibility();
+                    movement = location.getDifference(target, time);
+                    if (movement.getLength() > visibility.getLengthForAngle(movement.getAngle())) {
+                        movement.setLength((int) visibility.getAngleForLength(movement.getAngle(), movement.getLength()));
+                    }
+                    driveHelper.drive(movement);
+                } while (!location.equals(target));
             }
         } catch (InterruptedException e) {
             logger.warning("NaviAgent interrupted: " + e.getMessage());
+        } catch (Exception e) {
+            logger.warning("NaviAgent: " + e.getMessage());
         }
     }
 
@@ -102,20 +116,5 @@ public class NaviAgent implements Runnable {
             }
         }
         return index;
-    }
-
-    private static boolean isTargetInTarget(NaviPoint currentLocation, NaviPoint target) {
-        double horizontalSquare = Math.pow(target.getAbsoluteHorizontal() - currentLocation.getAbsoluteHorizontal(), 2.0);
-        double verticalSquare = Math.pow(target.getAbsoluteVertical() - currentLocation.getAbsoluteVertical(), 2.0);
-        double radiusSquare = Math.pow(target.getRadius(), 2.0);
-        return (horizontalSquare + verticalSquare <= radiusSquare);
-    }
-
-    private static NaviMovement getAdjustment(NaviPoint currentLocation, NaviPoint target) {
-        double horizontal = currentLocation.getAbsoluteHorizontal() - target.getAbsoluteHorizontal();
-        double vertical = currentLocation.getAbsoluteVertical() - target.getAbsoluteVertical();
-        double angle = Math.tanh(vertical / horizontal) - 90.0;
-        double length = Math.sqrt(Math.pow(horizontal, 2.0) + Math.pow(vertical, 2.0));
-        return new NaviMovement(currentLocation, angle, length);
     }
 }

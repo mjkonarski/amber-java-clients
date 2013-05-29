@@ -5,19 +5,17 @@ package hokuyocomm;
  */
 public class MapPoint {
 
-    private short distance;
-
-    private double angle;
+    private double angle, distance;
 
     private int timeStamp;
 
-    public MapPoint(short d, double a, int t) {
+    public MapPoint(double d, double a, int t) {
         distance = d;
         angle = a;
         timeStamp = t;
     }
 
-    public short getDistance() {
+    public double getDistance() {
         return distance;
     }
 

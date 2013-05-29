@@ -1,6 +1,9 @@
 package pl.edu.agh.amber.navi.dto;
 
+import hokuyocomm.MapPoint;
 import pl.edu.agh.amber.navi.tool.ContinuumMap;
+
+import java.util.List;
 
 public final class NaviVisibility {
 
@@ -10,7 +13,18 @@ public final class NaviVisibility {
         this.visibility = visibility;
     }
 
-    public Double getLengthForAngle(double angle) {
+    public NaviVisibility(List<MapPoint> points) {
+        this.visibility = new ContinuumMap();
+        for (MapPoint point : points) {
+            visibility.put(point.getAngle(), point.getDistance());
+        }
+    }
+
+    public double getLengthForAngle(double angle) {
         return visibility.get(angle);
+    }
+
+    public double getAngleForLength(double angle, double length) {
+        return visibility.getLength(angle);
     }
 }

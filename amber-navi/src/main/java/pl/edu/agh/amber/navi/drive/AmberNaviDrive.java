@@ -8,56 +8,78 @@ import java.util.logging.Logger;
 
 public class AmberNaviDrive extends NaviDriveHelper {
 
+    // paoolo TODO get radius of robo
+    public static final int RADIUS = 10;
+
+    // paoolo TODO determine metrics of speed
+    public static final int MAX_SPEED = 10;
+
     private static final Logger logger = Logger.getLogger(String.valueOf(AmberNaviDrive.class));
 
     private final RoboclawProxy roboclawProxy;
-
-    private double currentAngle, currentSpeed;
 
     public AmberNaviDrive(RoboclawProxy roboclawProxy) throws IOException {
         this.roboclawProxy = roboclawProxy;
     }
 
-    public double getCurrentAngle() {
-        return currentAngle;
-    }
+    @Override
+    public void drive(NaviMovement movement) {
+        int distance = movement.getLength(), time = movement.getTime();
+        int speed = distance / time;
 
-    public double getCurrentSpeed() {
-        return currentSpeed;
+        if (speed > MAX_SPEED) {
+            speed = MAX_SPEED;
+            time = distance / MAX_SPEED;
+        }
+
+        rotate(movement.getAngle());
+        drive(speed);
+
+        try {
+            Thread.sleep(time);
+        } catch (InterruptedException e) {
+            logger.warning("Sleeping interrupted during driving: " + e.getMessage());
+        }
+
+        stop();
     }
 
     @Override
-    public void change(NaviMovement movement) throws IOException {
-        this.currentAngle += movement.getAngle();
-        this.currentSpeed += movement.getSpeed();
+    public void drive(int speed) {
+        try {
+            roboclawProxy.sendMotorsCommand(speed, speed, speed, speed);
 
-        int frontLeft = getFrontLeft(currentAngle, currentSpeed), frontRight = getFrontRight(currentAngle, currentSpeed),
-                rearLeft = getRearLeft(currentAngle, currentSpeed), rearRight = getRearRight(currentAngle, currentSpeed);
-
-        roboclawProxy.sendMotorsCommand(frontLeft, frontRight, rearLeft, rearRight);
+        } catch (IOException e) {
+            logger.info("Error during driving: " + e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 
-    private static int getLeft(double angle, double speed) {
-        return 0;
+    @Override
+    public void rotate(int angle) {
+        try {
+            int time = (Math.abs(angle) * RADIUS) / MAX_SPEED;
+            int speed = (angle > 0 ? MAX_SPEED : -MAX_SPEED);
+
+            roboclawProxy.sendMotorsCommand(speed, -speed, speed, -speed);
+
+            try {
+                Thread.sleep(time);
+            } catch (InterruptedException e) {
+                logger.warning("Sleeping interrupted during rotating: " + e.getMessage());
+            }
+
+            stop();
+
+        } catch (IOException e) {
+            logger.warning("Error during rotating: " + e.getMessage());
+            throw new RuntimeException(e);
+
+        }
     }
 
-    private static int getRight(double angle, double speed) {
-        return 0;
-    }
-
-    private static int getFrontLeft(double angle, double speed) {
-        return getLeft(angle, speed);
-    }
-
-    private static int getFrontRight(double angle, double speed) {
-        return getRight(angle, speed);
-    }
-
-    private static int getRearLeft(double angle, double speed) {
-        return getLeft(angle, speed);
-    }
-
-    private static int getRearRight(double angle, double speed) {
-        return getRight(angle, speed);
+    @Override
+    public void stop() {
+        drive(0);
     }
 }

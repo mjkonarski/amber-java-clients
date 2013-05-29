@@ -33,6 +33,7 @@ public class NaviConfig {
         return Double.parseDouble(PropertiesHelper.getProperty(properties, NaviConst.REF_CENTER_VERTICAL, "0.0"));
     }
 
+    @SuppressWarnings("unused")
     public static HelperType getDriveHelperType() {
         String driverHelperType = PropertiesHelper.getProperty(properties, NaviConst.DRIVE_HELPER_TYPE, null);
         if (NaviConst.AMBER_TYPE.equals(driverHelperType)) {
@@ -41,6 +42,7 @@ public class NaviConfig {
         return HelperType.DUMMY;
     }
 
+    @SuppressWarnings("unused")
     public static HelperType getTrackHelperType() {
         String trackHelperType = PropertiesHelper.getProperty(properties, NaviConst.TRACK_HELPER_TYPE, null);
         if (NaviConst.AMBER_TYPE.equals(trackHelperType)) {
@@ -51,6 +53,7 @@ public class NaviConfig {
         return HelperType.DUMMY;
     }
 
+    @SuppressWarnings("unused")
     public static HelperType getEyeHelperType() {
         String eyeHelperType = PropertiesHelper.getProperty(properties, NaviConst.EYE_HELPER_TYPE, null);
         if (NaviConst.HOKUYO_TYPE.equals(eyeHelperType)) {

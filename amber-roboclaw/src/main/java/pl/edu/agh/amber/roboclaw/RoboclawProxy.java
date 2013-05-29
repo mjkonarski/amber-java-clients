@@ -49,10 +49,10 @@ public class RoboclawProxy extends AmberProxy {
      * Used to send speed command to robot's motors. All values are in mm/s.
      * This request takes about 6ms to complete on robot.
      *
-     * @param frontLeftSpeed  front left motors's speed
-     * @param frontRightSpeed front right motors's speed
-     * @param rearLeftSpeed   rear left motors's speed
-     * @param rearRightSpeed  rear right motors's speed
+     * @param frontLeftSpeed  front left motor speed
+     * @param frontRightSpeed front right motor speed
+     * @param rearLeftSpeed   rear left motor speed
+     * @param rearRightSpeed  rear right motor speed
      * @throws IOException thrown on connection problems
      */
     public void sendMotorsCommand(int frontLeftSpeed, int frontRightSpeed, int rearLeftSpeed, int rearRightSpeed)

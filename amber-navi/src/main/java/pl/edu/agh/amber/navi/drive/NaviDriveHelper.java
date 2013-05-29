@@ -3,8 +3,6 @@ package pl.edu.agh.amber.navi.drive;
 import pl.edu.agh.amber.navi.NaviHelper;
 import pl.edu.agh.amber.navi.dto.NaviMovement;
 
-import java.io.IOException;
-
 /**
  * Provide access to drive system.
  */
@@ -28,5 +26,11 @@ public abstract class NaviDriveHelper extends NaviHelper {
         super.notifyMovementChange(movement);
     }
 
-    public abstract void change(NaviMovement movement) throws IOException;
+    public abstract void drive(NaviMovement movement);
+
+    public abstract void drive(int speed);
+
+    public abstract void stop();
+
+    public abstract void rotate(int angle);
 }
