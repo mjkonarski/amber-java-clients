@@ -8,7 +8,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-public abstract class NaviHelper {
+public abstract class NaviHelper implements Runnable {
 
     private final List<NaviListener> listeners = Collections.synchronizedList(new LinkedList<NaviListener>());
 
@@ -46,5 +46,9 @@ public abstract class NaviHelper {
                 listener.movementChanged(movement);
             }
         }
+    }
+
+    @Override
+    public void run() {
     }
 }

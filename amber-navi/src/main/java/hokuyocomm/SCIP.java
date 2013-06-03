@@ -52,10 +52,10 @@ public class SCIP {
         StringBuilder result = new StringBuilder();
         for (int i = 0; i < count; i++) {
             String str = sc.nextLine();
-            result.append(str.substring(0, str.length() - 2));
+            result.append(str).append('\n');
         }
-        sc.nextLine();
 
+        logger.info(result.toString());
         return result.toString();
     }
 
@@ -189,19 +189,22 @@ public class SCIP {
 
         // fetch data
         int numDataBlocks = 32;
-        List<String> measurements = new LinkedList<String>();
+        StringBuilder measurements = new StringBuilder();
         for (int i = 0; i < numDataBlocks; i++) {
             String receivedLine = sc.nextLine();
-            measurements.add(receivedLine.substring(0, receivedLine.length() - 1));
+            measurements.append(receivedLine.substring(0, receivedLine.length() - 1));
         }
+        String measurement = measurements.toString();
+        System.err.println(measurement);
 
         // 725 (end of measurement) - 44 (end of measurement) = 681 values
-        int i = 0;
-        for (String measurement : measurements) {
-            double distanceValue = (double) SCIP.decode(measurement.substring(0, 3));
-            points.add(new MapPoint(distanceValue, (0.3515625 * i) - 29.53125, timeStamp));
-            i += 1;
+        for (int i = 0; i < measurements.length() / 3; i += 1) {
+            double distanceValue = (double) SCIP.decode(measurement.substring(3 * i, 3 * (i + 1)));
+            points.add(new MapPoint(distanceValue, (0.35208516886930985 * i) - 119.885, timeStamp));
         }
+
+        // Show list of points
+        System.err.println(points);
 
         // return list of points
         return points;
@@ -210,110 +213,29 @@ public class SCIP {
     /**
      * Command "GD", page 13
      */
-    public List<MapPoint> singleScan(int clusterCount) {
+    public List<MapPoint> singleScan() {
         List<MapPoint> points = new LinkedList<MapPoint>();
 
         // send command
-        ps.println(SINGLE_SCAN + intToString(clusterCount, 2));
+        ps.println(SINGLE_SCAN + "00");
 
         // drop first line
-        sc.nextLine();
-
-        String receivedLine = sc.nextLine();
-        // check if line is valid
-        if (receivedLine.substring(0, 3).contains(OOP)) {
-            // fetch data
-            return fetchData();
-
-        } else {
-            int status = Integer.parseInt(receivedLine.substring(0, 2));
-            switch (status) {
-                case 1:
-                    logger.warning("Start step has non-numeric value.");
-                    break;
-                case 2:
-                    logger.warning("End step has non-numeric value.");
-                    break;
-                case 3:
-                    logger.warning("Cluster count has non-numeric value.");
-                    break;
-                case 4:
-                    logger.warning("End step is out of range.");
-                    break;
-                case 5:
-                    logger.warning("End step is smaller than start step.");
-                    break;
-                case 10:
-                    logger.warning("Laser is turned off.");
-                    break;
-                default:
-                    logger.warning("Hardware issue #" + status + ".");
-                    break;
-            }
-            throw new RuntimeException();
-        }
-    }
-
-    /**
-     * Command "MD", page 11
-     */
-    public List<List<MapPoint>> multiScan(int numScans, int scanInterval, int clusterCount) {
-        List<List<MapPoint>> points = new LinkedList<List<MapPoint>>();
-
-        ps.println(MULTI_SCAN + intToString(clusterCount, 2) + intToString(scanInterval, 0) + intToString(numScans, 2));
-
-        // drop first line
-        sc.nextLine();
+        logger.info(sc.nextLine());
 
         String receivedLine = sc.nextLine();
         // check if line is valid
         if (receivedLine.contains(OOP)) {
-            int remainingScans = numScans;
-            while (remainingScans > 0) {
-                // drop line
-                sc.nextLine();
-
-                // get information about remaining scans
-                remainingScans = Integer.parseInt(sc.nextLine().substring(14));
-                if (sc.nextLine().contains("99b")) {
-                    // fetch data
-                    points.add(fetchData());
-                }
-            }
-
-            // return list of points
-            return points;
-
+            // fetch data
+            points.addAll(fetchData());
         } else {
-            int status = Integer.parseInt(receivedLine.substring(0, 2));
-            switch (status) {
-                case 1:
-                    logger.warning("Start step has non-numeric value.");
-                    break;
-                case 2:
-                    logger.warning("End step has non-numeric value.");
-                    break;
-                case 3:
-                    logger.warning("Cluster count has non-numeric value.");
-                    break;
-                case 4:
-                    logger.warning("End step is out of range.");
-                    break;
-                case 5:
-                    logger.warning("End step is smaller than start step.");
-                    break;
-                case 6:
-                    logger.warning("Scan interval has non-numeric value.");
-                    break;
-                case 7:
-                    logger.warning("Number of scans has non-numeric value.");
-                    break;
-                default:
-                    logger.warning("Hardware issue #" + status + ".");
-                    break;
-            }
-            throw new RuntimeException();
+            // no data?
+            logger.warning(receivedLine);
         }
+        // drop last line
+        logger.info(sc.nextLine());
+
+        // return list of points
+        return points;
     }
 
     private static int decode(String enc) {

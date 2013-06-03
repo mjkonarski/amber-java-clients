@@ -52,7 +52,7 @@ public class NaviAgent implements Runnable {
     public void addLastPoints(List<NaviPoint> points) {
         synchronized (route) {
             route.addAll(points);
-            points.notifyAll();
+            route.notifyAll();
         }
     }
 
@@ -68,7 +68,7 @@ public class NaviAgent implements Runnable {
     public void addAfterPoints(List<NaviPoint> points, NaviPoint after) {
         synchronized (route) {
             route.addAll(getIndex(after), points);
-            points.notifyAll();
+            route.notifyAll();
         }
     }
 
@@ -78,6 +78,9 @@ public class NaviAgent implements Runnable {
         NaviPoint target, location;
         NaviVisibility visibility;
         NaviMovement movement;
+
+        logger.info("Started");
+
         try {
             while (isRunning()) {
                 synchronized (route) {
@@ -85,22 +88,32 @@ public class NaviAgent implements Runnable {
                         route.wait();
                     }
                     target = route.remove(0);
+                    logger.info("Next point: " + target);
                 }
 
                 do {
                     location = trackHelper.getLocation();
                     visibility = eyeHelper.getVisibility();
-                    movement = location.getDifference(target, time);
-                    if (movement.getLength() > visibility.getLengthForAngle(movement.getAngle())) {
-                        movement.setLength((int) visibility.getAngleForLength(movement.getAngle(), movement.getLength()));
+                    if (location != null) {
+                        movement = location.getDifference(target, time);
+                        if (visibility != null && movement.getLength() > visibility.getLengthForAngle(movement.getAngle())) {
+                            movement.setLength((int) visibility.getAngleForLength(movement.getAngle(), movement.getLength()));
+                        }
+                        logger.info("Location: " + location + ", visibility: " + visibility + ", movement: " + movement);
+                        driveHelper.drive(movement);
+                    } else {
+                        logger.warning("No location. Sleeping for 10s...");
+                        Thread.sleep(10000);
                     }
-                    driveHelper.drive(movement);
-                } while (!location.equals(target));
+                } while (location != null && !location.equals(target));
             }
         } catch (InterruptedException e) {
             logger.warning("NaviAgent interrupted: " + e.getMessage());
+            e.printStackTrace();
+
         } catch (Exception e) {
             logger.warning("NaviAgent: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 

@@ -1,5 +1,6 @@
 package pl.edu.agh.amber.navi;
 
+import pl.edu.agh.amber.navi.app.NaviMain;
 import pl.edu.agh.amber.navi.tool.PropertiesHelper;
 
 import java.util.Properties;

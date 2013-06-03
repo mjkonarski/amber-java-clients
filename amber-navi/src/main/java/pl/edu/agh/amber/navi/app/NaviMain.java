@@ -1,10 +1,11 @@
-package pl.edu.agh.amber.navi;
+package pl.edu.agh.amber.navi.app;
 
 import gnu.io.NoSuchPortException;
 import gnu.io.PortInUseException;
 import gnu.io.SerialPort;
 import gnu.io.UnsupportedCommOperationException;
 import pl.edu.agh.amber.common.AmberClient;
+import pl.edu.agh.amber.navi.NaviConfig;
 import pl.edu.agh.amber.navi.agent.NaviAgent;
 import pl.edu.agh.amber.navi.drive.AmberNaviDrive;
 import pl.edu.agh.amber.navi.drive.NaviDriveHelper;
@@ -30,8 +31,6 @@ import java.util.logging.Logger;
 public class NaviMain {
 
     private static final Logger logger = Logger.getLogger(String.valueOf(NaviMain.class));
-
-    private static final String OWNER = "navi";
 
     private static int parseInt(String value) {
         try {
@@ -84,20 +83,22 @@ public class NaviMain {
 
         switch (NaviConfig.getTrackHelperType()) {
             case HOLUX:
-                SerialPort holuxSerialPortWrapper = SerialPortHelper.getHoluxSerialPort(holuxPortName);
-                trackHelper = new HoluxNaviTrack(holuxSerialPortWrapper);
+                SerialPort holuxSerialPort = SerialPortHelper.getHoluxSerialPort(holuxPortName);
+                trackHelper = new HoluxNaviTrack(holuxSerialPort);
                 break;
             default:
                 trackHelper = new AmberNaviTrack(starGazerProxy);
                 break;
         }
 
-        SerialPort hokuyoSerialPortWrapper = SerialPortHelper.getHokuyoSerialPort(hokuyoPortName);
-        eyeHelper = new HokuyoNaviEye(hokuyoSerialPortWrapper);
+        SerialPort hokuyoSerialPort = SerialPortHelper.getHokuyoSerialPort(hokuyoPortName);
+        eyeHelper = new HokuyoNaviEye(hokuyoSerialPort);
+        Thread eyeThread = new Thread(eyeHelper);
+        eyeThread.start();
 
         NaviAgent naviAgent = new NaviAgent(driveHelper, trackHelper, eyeHelper);
         naviAgent.addLastPoints(route);
-        Thread thread = new Thread(naviAgent);
-        thread.start();
+        Thread agentThread = new Thread(naviAgent);
+        agentThread.start();
     }
 }
