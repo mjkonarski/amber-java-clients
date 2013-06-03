@@ -21,7 +21,6 @@ public final class NaviPoint {
         this(null, horizontal, vertical, 0.0);
     }
 
-    @SuppressWarnings("unused")
     public double getHorizontal() {
         return horizontal;
     }
@@ -30,7 +29,6 @@ public final class NaviPoint {
         return this.horizontal + (referenceCenter != null ? referenceCenter.getAbsoluteHorizontal() : 0.0);
     }
 
-    @SuppressWarnings("unused")
     public double getVertical() {
         return vertical;
     }
@@ -53,19 +51,23 @@ public final class NaviPoint {
     public boolean equals(Object o) {
         if (o instanceof NaviPoint) {
             NaviPoint other = (NaviPoint) o;
+
             double horizontalSquare = Math.pow(other.getAbsoluteHorizontal() - this.getAbsoluteHorizontal(), 2.0);
             double verticalSquare = Math.pow(other.getAbsoluteVertical() - this.getAbsoluteVertical(), 2.0);
             double radiusSquare = Math.pow(Math.max(other.getRadius(), this.getRadius()), 2.0);
+
             return (horizontalSquare + verticalSquare <= radiusSquare);
         }
         return false;
     }
 
-    public NaviMovement getDifference(NaviPoint target, int time) {
+    public NaviMovement getDifference(NaviPoint target) {
         double horizontal = getAbsoluteHorizontal() - target.getAbsoluteHorizontal();
         double vertical = getAbsoluteVertical() - target.getAbsoluteVertical();
-        int angle = (int) Math.toDegrees(Math.tanh(vertical / horizontal)) - 90;
-        int distance = (int) Math.sqrt(Math.pow(horizontal, 2.0) + Math.pow(vertical, 2.0));
-        return new NaviMovement(this, angle, distance, time);
+
+        double angle = Math.toDegrees(Math.tanh(vertical / horizontal)) - 90;
+        double distance = Math.sqrt(Math.pow(horizontal, 2.0) + Math.pow(vertical, 2.0));
+
+        return new NaviMovement(this, angle, distance);
     }
 }

@@ -1,9 +1,7 @@
 package pl.edu.agh.amber.navi.agent;
 
 import pl.edu.agh.amber.navi.drive.NaviDriveHelper;
-import pl.edu.agh.amber.navi.dto.NaviMovement;
 import pl.edu.agh.amber.navi.dto.NaviPoint;
-import pl.edu.agh.amber.navi.dto.NaviVisibility;
 import pl.edu.agh.amber.navi.eye.NaviEyeHelper;
 import pl.edu.agh.amber.navi.track.NaviTrackHelper;
 
@@ -72,16 +70,32 @@ public class NaviAgent implements Runnable {
         }
     }
 
+    public static final double MAX_SPEED = 60.0;
+
+    public static final double PROPORTIONAL_FACTOR = 20.0;
+
+    public static final double INTEGRAL_FACTOR = 10000.0;
+
+    public static final double DERIVATIVE_FACTOR = 0.6;
+
     @Override
     public void run() {
-        int time = 1000;
-        NaviPoint target, location;
-        NaviVisibility visibility;
-        NaviMovement movement;
+        NaviPoint target, oldTarget, location;
+
+        double proportional, lastProportional = 0.0, derivative, integral = 0.0;
+        double speedDiff;
 
         logger.info("Started");
 
         try {
+            do {
+                oldTarget = trackHelper.getLocation();
+                if (oldTarget == null) {
+                    logger.warning("No location. Sleeping for 1s...");
+                    Thread.sleep(1000);
+                }
+            } while (oldTarget == null);
+
             while (isRunning()) {
                 synchronized (route) {
                     while (route.isEmpty()) {
@@ -93,19 +107,29 @@ public class NaviAgent implements Runnable {
 
                 do {
                     location = trackHelper.getLocation();
-                    visibility = eyeHelper.getVisibility();
                     if (location != null) {
-                        movement = location.getDifference(target, time);
-                        if (visibility != null && movement.getLength() > visibility.getLengthForAngle(movement.getAngle())) {
-                            movement.setLength((int) visibility.getAngleForLength(movement.getAngle(), movement.getLength()));
+                        proportional = getProportional(location, target, oldTarget);
+                        derivative = proportional - lastProportional;
+                        integral += proportional;
+
+                        speedDiff = proportional / PROPORTIONAL_FACTOR + integral / INTEGRAL_FACTOR
+                                + derivative / DERIVATIVE_FACTOR;
+                        speedDiff = (speedDiff > MAX_SPEED ? MAX_SPEED
+                                : (speedDiff < -MAX_SPEED ? -MAX_SPEED : speedDiff));
+
+                        if (speedDiff < 0) {
+                            driveHelper.drive((int) (MAX_SPEED + speedDiff), (int) MAX_SPEED);
+                        } else {
+                            driveHelper.drive((int) MAX_SPEED, (int) (MAX_SPEED - speedDiff));
                         }
-                        logger.info("Location: " + location + ", visibility: " + visibility + ", movement: " + movement);
-                        driveHelper.drive(movement);
+
                     } else {
-                        logger.warning("No location. Sleeping for 10s...");
-                        Thread.sleep(10000);
+                        logger.warning("No location. Sleeping for 1s...");
+                        Thread.sleep(1000);
                     }
-                } while (location != null && !location.equals(target));
+                } while (location == null || !location.equals(target));
+
+                oldTarget = target;
             }
         } catch (InterruptedException e) {
             logger.warning("NaviAgent interrupted: " + e.getMessage());
@@ -129,5 +153,27 @@ public class NaviAgent implements Runnable {
             }
         }
         return index;
+    }
+
+    private static double computeArea(double a1, double a2, double b1, double b2, double c1, double c2) {
+        return Math.abs(a1 * b2 + b1 * c2 + c1 * a2 - c1 * b2 - a1 * c2 - b1 * a2) / 2.0;
+    }
+
+    private static double computeArea(NaviPoint a, NaviPoint b, NaviPoint c) {
+        return computeArea(a.getAbsoluteHorizontal(), a.getAbsoluteVertical(),
+                b.getAbsoluteHorizontal(), b.getAbsoluteVertical(),
+                c.getAbsoluteHorizontal(), c.getAbsoluteVertical());
+    }
+
+    private static double computeLength(NaviPoint a, NaviPoint b) {
+        return Math.sqrt(Math.pow(a.getAbsoluteHorizontal() - b.getAbsoluteHorizontal(), 2) +
+                Math.pow(a.getAbsoluteVertical() - b.getAbsoluteVertical(), 2));
+    }
+
+    private static double getProportional(NaviPoint currentLocation, NaviPoint target, NaviPoint oldTarget) {
+        double area, length;
+        area = computeArea(currentLocation, oldTarget, target);
+        length = computeLength(oldTarget, target);
+        return (2 * area) / length;
     }
 }

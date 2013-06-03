@@ -1,7 +1,8 @@
-package hokuyocomm;
+package pl.edu.agh.amber.navi.eye.hokuyo;
 
 /**
  * @author GreenWing
+ * @author Pawel Suder
  */
 public class MapPoint {
 

@@ -36,7 +36,7 @@ public class StarGazerProxy extends AmberProxy {
     public void handleDataMsg(CommonProto.DriverHdr header, CommonProto.DriverMsg message) {
         logger.fine("Handling data message");
 
-        // paoolo TODO: this!
+        // paoolo TODO this!
     }
 
     @Override
@@ -53,7 +53,7 @@ public class StarGazerProxy extends AmberProxy {
 
         starGazerData.setXAxis(sensorData.getXAxis());
         starGazerData.setYAxis(sensorData.getYAxis());
-        starGazerData.setAngel(sensorData.getAngel());
+        starGazerData.setAngle(sensorData.getAngel());
 
         starGazerData.setAvailable();
     }

@@ -23,13 +23,13 @@ public class AmberNaviDrive extends NaviDriveHelper {
     }
 
     @Override
-    public void drive(NaviMovement movement) {
-        int distance = movement.getLength(), time = movement.getTime();
-        int speed = distance / time;
+    public void drive(NaviMovement movement, int time) {
+        double distance = movement.getLength();
+        int speed = (int) (distance / time);
 
         if (speed > MAX_SPEED) {
             speed = MAX_SPEED;
-            time = distance / MAX_SPEED;
+            time = (int) (distance / MAX_SPEED);
         }
 
         rotate(movement.getAngle());
@@ -45,10 +45,9 @@ public class AmberNaviDrive extends NaviDriveHelper {
     }
 
     @Override
-    public void drive(int speed) {
+    public void drive(int leftSpeed, int rightSpeed) {
         try {
-            roboclawProxy.sendMotorsCommand(speed, speed, speed, speed);
-
+            roboclawProxy.sendMotorsCommand(leftSpeed, rightSpeed, leftSpeed, rightSpeed);
         } catch (IOException e) {
             logger.info("Error during driving: " + e.getMessage());
             throw new RuntimeException(e);
@@ -56,9 +55,19 @@ public class AmberNaviDrive extends NaviDriveHelper {
     }
 
     @Override
-    public void rotate(int angle) {
+    public void drive(int speed) {
         try {
-            int time = (Math.abs(angle) * RADIUS) / MAX_SPEED;
+            roboclawProxy.sendMotorsCommand(speed, speed, speed, speed);
+        } catch (IOException e) {
+            logger.info("Error during driving: " + e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void rotate(double angle) {
+        try {
+            int time = (int) ((Math.abs(angle) * RADIUS) / MAX_SPEED);
             int speed = (angle > 0 ? MAX_SPEED : -MAX_SPEED);
 
             roboclawProxy.sendMotorsCommand(speed, -speed, speed, -speed);

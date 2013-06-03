@@ -5,7 +5,7 @@ import pl.edu.agh.amber.common.FutureObject;
 public class StarGazerData extends FutureObject {
     private int XAxis;
     private int YAxis;
-    private int angel;
+    private int angle;
 
     public void setXAxis(int XAxis) {
         this.XAxis = XAxis;
@@ -23,11 +23,11 @@ public class StarGazerData extends FutureObject {
         return YAxis;
     }
 
-    public void setAngel(int angel) {
-        this.angel = angel;
+    public void setAngle(int angle) {
+        this.angle = angle;
     }
 
-    public int getAngel() {
-        return angel;
+    public int getAngle() {
+        return angle;
     }
 }

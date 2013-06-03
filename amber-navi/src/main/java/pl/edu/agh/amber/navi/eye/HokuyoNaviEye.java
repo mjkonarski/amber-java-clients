@@ -1,8 +1,8 @@
 package pl.edu.agh.amber.navi.eye;
 
 import gnu.io.SerialPort;
-import hokuyocomm.MapPoint;
-import hokuyocomm.SCIP;
+import pl.edu.agh.amber.navi.eye.hokuyo.MapPoint;
+import pl.edu.agh.amber.navi.eye.hokuyo.SCIP;
 import pl.edu.agh.amber.navi.dto.NaviVisibility;
 
 import java.io.IOException;

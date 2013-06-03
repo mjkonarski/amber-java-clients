@@ -27,24 +27,11 @@ public class ContinuumMap extends HashMap<Double, Double> {
         return length;
     }
 
-    public double getLength(double angle) {
-        Double length = null, diff = null, newAngle = angle;
-        for (Double a : angles) {
-            Double l = super.get(a);
-            if (length == null || l > length) {
-                if (diff == null || Math.abs(angle - a) < diff) {
-                    length = l;
-                    newAngle = a;
-                    diff = Math.abs(angle - a);
-                }
-            }
-        }
-        return newAngle;
-    }
-
     @Override
     public Double remove(Object key) {
-        angles.remove(key);
+        if (key instanceof Double) {
+            angles.remove(key);
+        }
         return super.remove(key);
     }
 }

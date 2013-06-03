@@ -4,16 +4,14 @@ public final class NaviMovement {
 
     private NaviPoint referencePoint;
 
-    private int angle, length, time;
+    private double angle, length;
 
-    public NaviMovement(NaviPoint referencePoint, int angle, int length, int time) {
+    public NaviMovement(NaviPoint referencePoint, double angle, double length) {
         this.referencePoint = referencePoint;
         this.angle = angle;
         this.length = length;
-        this.time = time;
     }
 
-    @SuppressWarnings("unused")
     public NaviPoint getReferencePoint() {
         return referencePoint;
     }
@@ -22,27 +20,19 @@ public final class NaviMovement {
         this.referencePoint = referencePoint;
     }
 
-    public int getAngle() {
+    public double getAngle() {
         return angle;
     }
 
-    public void setAngle(int angle) {
+    public void setAngle(double angle) {
         this.angle = angle;
     }
 
-    public int getLength() {
+    public double getLength() {
         return length;
     }
 
-    public void setLength(int length) {
+    public void setLength(double length) {
         this.length = length;
-    }
-
-    public int getTime() {
-        return time;
-    }
-
-    public void setTime(int time) {
-        this.time = time;
     }
 }

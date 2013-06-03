@@ -1,4 +1,4 @@
-package hokuyocomm;
+package pl.edu.agh.amber.navi.eye.hokuyo;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 
 /**
  * @author Nick Schulz
+ * @author Pawel Suder
  */
 public class SCIP {
 
@@ -33,9 +34,7 @@ public class SCIP {
 
     private static final String SENSOR_STATE = "II";
 
-    private static final String SINGLE_SCAN = "GD00440725";
-
-    private static final String MULTI_SCAN = "MD00440725";
+    private static final String SINGLE_SCAN = "GD0044072500";
 
     private final Scanner sc;
 
@@ -55,7 +54,7 @@ public class SCIP {
             result.append(str).append('\n');
         }
 
-        logger.info(result.toString());
+        logger.fine(result.toString());
         return result.toString();
     }
 
@@ -195,7 +194,7 @@ public class SCIP {
             measurements.append(receivedLine.substring(0, receivedLine.length() - 1));
         }
         String measurement = measurements.toString();
-        System.err.println(measurement);
+        logger.fine(measurement);
 
         // 725 (end of measurement) - 44 (end of measurement) = 681 values
         for (int i = 0; i < measurements.length() / 3; i += 1) {
@@ -204,7 +203,7 @@ public class SCIP {
         }
 
         // Show list of points
-        System.err.println(points);
+        logger.fine(String.valueOf(points));
 
         // return list of points
         return points;
@@ -217,10 +216,10 @@ public class SCIP {
         List<MapPoint> points = new LinkedList<MapPoint>();
 
         // send command
-        ps.println(SINGLE_SCAN + "00");
+        ps.println(SINGLE_SCAN);
 
         // drop first line
-        logger.info(sc.nextLine());
+        logger.finer(sc.nextLine());
 
         String receivedLine = sc.nextLine();
         // check if line is valid
@@ -232,7 +231,7 @@ public class SCIP {
             logger.warning(receivedLine);
         }
         // drop last line
-        logger.info(sc.nextLine());
+        logger.finer(sc.nextLine());
 
         // return list of points
         return points;
@@ -252,13 +251,5 @@ public class SCIP {
             binaryDec += str;
         }
         return Integer.parseInt(binaryDec, 2);
-    }
-
-    private static String intToString(int value, int count) {
-        StringBuilder string = new StringBuilder(Integer.toString(value));
-        while (string.length() < count) {
-            string.insert(0, "0");
-        }
-        return string.toString();
     }
 }
