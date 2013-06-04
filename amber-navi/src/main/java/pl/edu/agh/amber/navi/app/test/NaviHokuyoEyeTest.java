@@ -11,7 +11,7 @@ import pl.edu.agh.amber.navi.tool.SerialPortHelper;
 
 import java.io.IOException;
 
-public class NaviEyeTest {
+public class NaviHokuyoEyeTest {
 
     public static void main(String[] args) throws PortInUseException, UnsupportedCommOperationException,
             NoSuchPortException, IOException {
@@ -27,11 +27,11 @@ public class NaviEyeTest {
         scip.setHighSensitive(true);
         scip.setMotorSpeed(SCIP.MotorSpeed.DEFAULT);
 
-        scip.getVersionInfo();
-        scip.getSensorState();
-        scip.getSensorSpecs();
+        System.err.println(scip.getVersionInfo());
+        System.err.println(scip.getSensorState());
+        System.err.println(scip.getSensorSpecs());
 
-        scip.singleScan();
+        System.err.println(scip.singleScan());
 
         scip.laserOff();
     }

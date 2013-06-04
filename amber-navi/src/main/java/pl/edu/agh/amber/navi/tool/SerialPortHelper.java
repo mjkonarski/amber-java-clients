@@ -28,12 +28,18 @@ public class SerialPortHelper {
     public static SerialPort getHoluxSerialPort(String portName)
             throws PortInUseException, IOException, NoSuchPortException, UnsupportedCommOperationException {
 
-        return getSerialPort(portName, "holux", 4800, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE, 1001);
+        return getSerialPort(portName, "holux", 4800, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE, 1000);
     }
 
     public static SerialPort getHokuyoSerialPort(String portName)
             throws PortInUseException, IOException, NoSuchPortException, UnsupportedCommOperationException {
 
-        return getSerialPort(portName, "hokuyo", 9600, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE, 1000);
+        return getSerialPort(portName, "hokuyo", 9600, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE, 1001);
+    }
+
+    public static SerialPort getStarGazerSerialPort(String portName)
+            throws PortInUseException, IOException, NoSuchPortException, UnsupportedCommOperationException {
+
+        return getSerialPort(portName, "star_gazer", 115200, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE, 1002);
     }
 }

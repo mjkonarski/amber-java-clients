@@ -1,9 +1,6 @@
 package pl.edu.agh.amber.navi.app;
 
-import gnu.io.NoSuchPortException;
-import gnu.io.PortInUseException;
 import gnu.io.SerialPort;
-import gnu.io.UnsupportedCommOperationException;
 import pl.edu.agh.amber.common.AmberClient;
 import pl.edu.agh.amber.navi.NaviConfig;
 import pl.edu.agh.amber.navi.agent.NaviAgent;
@@ -13,9 +10,9 @@ import pl.edu.agh.amber.navi.dto.NaviPoint;
 import pl.edu.agh.amber.navi.eye.HokuyoNaviEye;
 import pl.edu.agh.amber.navi.eye.NaviEyeHelper;
 import pl.edu.agh.amber.navi.tool.SerialPortHelper;
-import pl.edu.agh.amber.navi.track.AmberNaviTrack;
 import pl.edu.agh.amber.navi.track.HoluxNaviTrack;
 import pl.edu.agh.amber.navi.track.NaviTrackHelper;
+import pl.edu.agh.amber.navi.track.StarGazerNaviTrack;
 import pl.edu.agh.amber.roboclaw.RoboclawProxy;
 import pl.edu.agh.amber.stargazer.StarGazerProxy;
 
@@ -58,14 +55,14 @@ public class NaviMain {
         return route;
     }
 
-    public static void main(String[] args) throws IOException, NoSuchPortException, PortInUseException,
-            UnsupportedCommOperationException {
+    public static void main(String[] args) throws Exception {
 
         NaviPoint referenceCenter = new NaviPoint(NaviConfig.getRefCenterHorizontal(),
                 NaviConfig.getRefCenterVertical(), 0.0);
 
         String holuxPortName = NaviConfig.getHoluxPortName();
         String hokuyoPortName = NaviConfig.getHokuyoPortName();
+        String starGazerPortName = NaviConfig.getStarGazerPortName();
 
         String hostname = NaviConfig.getHostname();
         int port = NaviConfig.getPort();
@@ -73,7 +70,6 @@ public class NaviMain {
 
         AmberClient amberClient = new AmberClient(hostname, port);
         RoboclawProxy roboclawProxy = new RoboclawProxy(amberClient, 0);
-        StarGazerProxy starGazerProxy = new StarGazerProxy(amberClient, 0);
 
         NaviDriveHelper driveHelper;
         NaviTrackHelper trackHelper;
@@ -86,9 +82,12 @@ public class NaviMain {
                 SerialPort holuxSerialPort = SerialPortHelper.getHoluxSerialPort(holuxPortName);
                 trackHelper = new HoluxNaviTrack(holuxSerialPort);
                 break;
-            default:
-                trackHelper = new AmberNaviTrack(starGazerProxy);
+            case STAR_GAZER:
+                SerialPort starGazerSerialPort = SerialPortHelper.getStarGazerSerialPort(starGazerPortName);
+                trackHelper = new StarGazerNaviTrack(starGazerSerialPort);
                 break;
+            default:
+                throw new Exception("No track helper initialized");
         }
 
         SerialPort hokuyoSerialPort = SerialPortHelper.getHokuyoSerialPort(hokuyoPortName);

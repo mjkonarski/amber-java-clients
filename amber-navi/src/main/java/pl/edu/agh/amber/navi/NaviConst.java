@@ -16,9 +16,13 @@ public final class NaviConst {
 
     public static final String HOKUYO_TYPE = "hokuyo";
 
-    public static final String HOLUX_PORT_NAME_DEFAULT = "/dev/ttyACM0";
+    public static final String STAR_GAZER_TYPE = "star_gazer";
 
-    public static final String HOKUYO_PORT_NAME_DEFAULT = "/dev/ttyACM1";
+    public static final String HOLUX_PORT_NAME_DEFAULT = "/dev/ttyUSB0";
+
+    public static final String HOKUYO_PORT_NAME_DEFAULT = "/dev/ttyS8";
+
+    public static final String STAR_GAZER_PORT_NAME_DEFAULT = "/dev/ttyUSB0";
 
 
     private NaviConst() {
@@ -45,4 +49,6 @@ public final class NaviConst {
     public static final String HOLUX_PORT_NAME = PREFIX + "holuxPortName";
 
     public static final String HOKUYO_PORT_NAME = PREFIX + "hokuyoPortName";
+
+    public static final String STAR_GAZER_PORT_NAME = PREFIX + "starGazerPortName";
 }

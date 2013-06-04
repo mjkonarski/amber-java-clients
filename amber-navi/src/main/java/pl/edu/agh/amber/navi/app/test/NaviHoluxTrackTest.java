@@ -14,7 +14,7 @@ import pl.edu.agh.amber.navi.tool.SerialPortHelper;
 
 import java.io.IOException;
 
-public class NaviTrackTest {
+public class NaviHoluxTrackTest {
 
     private static class PositionListenerImpl implements PositionListener {
 

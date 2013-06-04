@@ -1,9 +1,9 @@
 package pl.edu.agh.amber.navi.eye;
 
 import gnu.io.SerialPort;
+import pl.edu.agh.amber.navi.dto.NaviVisibility;
 import pl.edu.agh.amber.navi.eye.hokuyo.MapPoint;
 import pl.edu.agh.amber.navi.eye.hokuyo.SCIP;
-import pl.edu.agh.amber.navi.dto.NaviVisibility;
 
 import java.io.IOException;
 import java.util.List;
@@ -21,7 +21,7 @@ public class HokuyoNaviEye extends NaviEyeHelper implements Runnable {
         scip.laserOn();
     }
 
-    public void scan(int clusterScan) {
+    public void scan() {
         List<MapPoint> scan = scip.singleScan();
         if (scan != null) {
             notifyVisibilityChange(new NaviVisibility(scan));
@@ -36,7 +36,7 @@ public class HokuyoNaviEye extends NaviEyeHelper implements Runnable {
     public void run() {
         try {
             while (true) {
-                scan(0);
+                scan();
                 Thread.sleep(1000);
             }
         } catch (InterruptedException e) {

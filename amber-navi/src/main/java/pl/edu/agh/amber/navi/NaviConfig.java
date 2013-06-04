@@ -7,9 +7,8 @@ import java.util.Properties;
 
 public class NaviConfig {
 
-
     public static enum HelperType {
-        AMBER, HOLUX, HOKUYO, DUMMY
+        AMBER, HOLUX, HOKUYO, STAR_GAZER, DUMMY
     }
 
     private static final Properties properties = PropertiesHelper.loadProperties(null, NaviMain.class, NaviConst.MAIN_PROPERTIES);
@@ -46,10 +45,10 @@ public class NaviConfig {
     @SuppressWarnings("unused")
     public static HelperType getTrackHelperType() {
         String trackHelperType = PropertiesHelper.getProperty(properties, NaviConst.TRACK_HELPER_TYPE, null);
-        if (NaviConst.AMBER_TYPE.equals(trackHelperType)) {
-            return HelperType.AMBER;
-        } else if (NaviConst.HOLUX_TYPE.equals(trackHelperType)) {
+        if (NaviConst.HOLUX_TYPE.equals(trackHelperType)) {
             return HelperType.HOLUX;
+        } else if (NaviConst.STAR_GAZER_TYPE.equals(trackHelperType)) {
+            return HelperType.STAR_GAZER;
         }
         return HelperType.DUMMY;
     }
@@ -69,5 +68,9 @@ public class NaviConfig {
 
     public static String getHokuyoPortName() {
         return PropertiesHelper.getProperty(properties, NaviConst.HOKUYO_PORT_NAME, NaviConst.HOKUYO_PORT_NAME_DEFAULT);
+    }
+
+    public static String getStarGazerPortName() {
+        return PropertiesHelper.getProperty(properties, NaviConst.STAR_GAZER_PORT_NAME, NaviConst.STAR_GAZER_PORT_NAME_DEFAULT);
     }
 }
