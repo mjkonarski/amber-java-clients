@@ -40,6 +40,7 @@ public class SerialPortHelper {
     public static SerialPort getStarGazerSerialPort(String portName)
             throws PortInUseException, IOException, NoSuchPortException, UnsupportedCommOperationException {
 
-        return getSerialPort(portName, "star_gazer", 115200, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE, 1002);
+        // 2400, 9600, 19200, 38400
+        return getSerialPort(portName, "stargazer", 115200, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE, 1002);
     }
 }

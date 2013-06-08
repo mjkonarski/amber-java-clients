@@ -1,8 +1,6 @@
 package pl.edu.agh.amber.navi.agent;
 
-import pl.edu.agh.amber.navi.drive.NaviDriveHelper;
 import pl.edu.agh.amber.navi.dto.NaviPoint;
-import pl.edu.agh.amber.navi.eye.NaviEyeHelper;
 import pl.edu.agh.amber.navi.track.NaviTrackHelper;
 
 import java.util.Collections;
@@ -11,24 +9,21 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
 
-public class NaviAgent implements Runnable {
+public class NaviTrackAgent implements Runnable {
 
-    private static final Logger logger = Logger.getLogger(String.valueOf(NaviAgent.class));
+    private static final Logger logger = Logger.getLogger(String.valueOf(NaviTrackAgent.class));
 
     private final List<NaviPoint> route = Collections.synchronizedList(new LinkedList<NaviPoint>());
 
-    private final NaviDriveHelper driveHelper;
-
     private final NaviTrackHelper trackHelper;
 
-    private final NaviEyeHelper eyeHelper;
+    private final NaviDriveAgent naviDriveAgent;
 
     private boolean running = true;
 
-    public NaviAgent(NaviDriveHelper driveHelper, NaviTrackHelper trackHelper, NaviEyeHelper eyeHelper) {
-        this.driveHelper = driveHelper;
+    public NaviTrackAgent(NaviTrackHelper trackHelper, NaviDriveAgent naviDriveAgent) {
         this.trackHelper = trackHelper;
-        this.eyeHelper = eyeHelper;
+        this.naviDriveAgent = naviDriveAgent;
     }
 
     synchronized void stop() {
@@ -70,7 +65,7 @@ public class NaviAgent implements Runnable {
         }
     }
 
-    public static final double MAX_SPEED = 60.0;
+    public static final double MAX_SPEED = 200.0;
 
     public static final double PROPORTIONAL_FACTOR = 20.0;
 
@@ -82,7 +77,7 @@ public class NaviAgent implements Runnable {
     public void run() {
         NaviPoint target, oldTarget, location;
 
-        double proportional, lastProportional = 0.0, derivative, integral = 0.0;
+        double proportional = 0.0, lastProportional = 0.0, derivative, integral = 0.0;
         double speedDiff;
 
         logger.info("Started");
@@ -109,24 +104,26 @@ public class NaviAgent implements Runnable {
                     location = trackHelper.getLocation();
                     if (location != null) {
                         proportional = getProportional(location, target, oldTarget);
-                        derivative = proportional - lastProportional;
-                        integral += proportional;
-
-                        speedDiff = proportional / PROPORTIONAL_FACTOR + integral / INTEGRAL_FACTOR
-                                + derivative / DERIVATIVE_FACTOR;
-                        speedDiff = (speedDiff > MAX_SPEED ? MAX_SPEED
-                                : (speedDiff < -MAX_SPEED ? -MAX_SPEED : speedDiff));
-
-                        if (speedDiff < 0) {
-                            driveHelper.drive((int) (MAX_SPEED + speedDiff), (int) MAX_SPEED);
-                        } else {
-                            driveHelper.drive((int) MAX_SPEED, (int) (MAX_SPEED - speedDiff));
-                        }
-
                     } else {
-                        logger.warning("No location. Sleeping for 1s...");
-                        Thread.sleep(1000);
+                        logger.warning("No location.");
                     }
+
+                    derivative = proportional - lastProportional;
+                    integral += proportional;
+
+                    speedDiff = proportional / PROPORTIONAL_FACTOR + integral / INTEGRAL_FACTOR
+                            + derivative / DERIVATIVE_FACTOR;
+                    speedDiff = (speedDiff > MAX_SPEED ? MAX_SPEED
+                            : (speedDiff < -MAX_SPEED ? -MAX_SPEED : speedDiff));
+
+                    if (speedDiff < 0) {
+                        naviDriveAgent.drive((MAX_SPEED + speedDiff), MAX_SPEED);
+                    } else {
+                        naviDriveAgent.drive(MAX_SPEED, (MAX_SPEED - speedDiff));
+                    }
+
+                    logger.fine("Sleep for 1s...");
+                    Thread.sleep(1000);
                 } while (location == null || !location.equals(target));
 
                 oldTarget = target;

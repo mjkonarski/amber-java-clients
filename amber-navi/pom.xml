@@ -33,6 +33,11 @@
             <artifactId>marineapi</artifactId>
             <version>0.6.0-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>com.baulsupp.kolja</groupId>
+            <artifactId>jcurses</artifactId>
+            <version>0.9.5.3</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

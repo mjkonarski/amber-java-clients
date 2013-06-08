@@ -18,7 +18,6 @@ public class HokuyoNaviEye extends NaviEyeHelper implements Runnable {
         this.serialPort = serialPort;
 
         scip = new SCIP(serialPort.getInputStream(), serialPort.getOutputStream());
-        scip.laserOn();
     }
 
     public void scan() {
@@ -34,14 +33,15 @@ public class HokuyoNaviEye extends NaviEyeHelper implements Runnable {
 
     @Override
     public void run() {
+        scip.laserOn();
         try {
             while (true) {
                 scan();
                 Thread.sleep(1000);
             }
         } catch (InterruptedException e) {
-            scip.laserOff();
             e.printStackTrace();
         }
+        scip.laserOff();
     }
 }

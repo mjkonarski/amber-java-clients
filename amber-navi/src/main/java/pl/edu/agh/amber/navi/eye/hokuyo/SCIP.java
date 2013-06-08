@@ -184,7 +184,7 @@ public class SCIP {
         List<MapPoint> points = new LinkedList<MapPoint>();
 
         // parse timestamp
-        int timeStamp = SCIP.decode(sc.nextLine().substring(0, 4));
+        int timeStamp = decode(sc.nextLine().substring(0, 4));
 
         // fetch data
         int numDataBlocks = 32;
@@ -198,7 +198,7 @@ public class SCIP {
 
         // 725 (end of measurement) - 44 (end of measurement) = 681 values
         for (int i = 0; i < measurements.length() / 3; i += 1) {
-            double distanceValue = (double) SCIP.decode(measurement.substring(3 * i, 3 * (i + 1)));
+            double distanceValue = (double) decode(measurement.substring(3 * i, 3 * (i + 1)));
             points.add(new MapPoint(distanceValue, (0.35208516886930985 * i) - 119.885, timeStamp));
         }
 

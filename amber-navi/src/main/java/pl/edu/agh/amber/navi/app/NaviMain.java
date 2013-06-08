@@ -3,18 +3,20 @@ package pl.edu.agh.amber.navi.app;
 import gnu.io.SerialPort;
 import pl.edu.agh.amber.common.AmberClient;
 import pl.edu.agh.amber.navi.NaviConfig;
-import pl.edu.agh.amber.navi.agent.NaviAgent;
+import pl.edu.agh.amber.navi.agent.NaviDriveAgent;
+import pl.edu.agh.amber.navi.agent.NaviTrackAgent;
 import pl.edu.agh.amber.navi.drive.AmberNaviDrive;
 import pl.edu.agh.amber.navi.drive.NaviDriveHelper;
 import pl.edu.agh.amber.navi.dto.NaviPoint;
 import pl.edu.agh.amber.navi.eye.HokuyoNaviEye;
 import pl.edu.agh.amber.navi.eye.NaviEyeHelper;
+import pl.edu.agh.amber.navi.tool.ConsoleHelper;
+import pl.edu.agh.amber.navi.tool.KeyListener;
 import pl.edu.agh.amber.navi.tool.SerialPortHelper;
 import pl.edu.agh.amber.navi.track.HoluxNaviTrack;
 import pl.edu.agh.amber.navi.track.NaviTrackHelper;
 import pl.edu.agh.amber.navi.track.StarGazerNaviTrack;
 import pl.edu.agh.amber.roboclaw.RoboclawProxy;
-import pl.edu.agh.amber.stargazer.StarGazerProxy;
 
 import java.io.*;
 import java.util.LinkedList;
@@ -87,7 +89,8 @@ public class NaviMain {
                 trackHelper = new StarGazerNaviTrack(starGazerSerialPort);
                 break;
             default:
-                throw new Exception("No track helper initialized");
+                trackHelper = null;
+                System.err.println("No location device. Rocket-science!!!");
         }
 
         SerialPort hokuyoSerialPort = SerialPortHelper.getHokuyoSerialPort(hokuyoPortName);
@@ -95,9 +98,48 @@ public class NaviMain {
         Thread eyeThread = new Thread(eyeHelper);
         eyeThread.start();
 
-        NaviAgent naviAgent = new NaviAgent(driveHelper, trackHelper, eyeHelper);
-        naviAgent.addLastPoints(route);
-        Thread agentThread = new Thread(naviAgent);
-        agentThread.start();
+        NaviDriveAgent naviDriveAgent = new NaviDriveAgent(driveHelper, eyeHelper);
+        Thread driveThread = new Thread(naviDriveAgent);
+        driveThread.start();
+
+        if (trackHelper != null) {
+            NaviTrackAgent naviTrackAgent = new NaviTrackAgent(trackHelper, naviDriveAgent);
+            naviTrackAgent.addLastPoints(route);
+            Thread trackThread = new Thread(naviTrackAgent);
+            trackThread.start();
+        }
+
+        KeyListener listener;
+        listener = new KeyListener('a') {
+            @Override
+            public void keyPressed() {
+                System.err.println("Speed up");
+            }
+        };
+        ConsoleHelper.addListener(listener);
+        listener = new KeyListener('z') {
+            @Override
+            public void keyPressed() {
+                System.err.println("Speed down");
+            }
+        };
+        ConsoleHelper.addListener(listener);
+        listener = new KeyListener('k') {
+            @Override
+            public void keyPressed() {
+                System.err.println("Turn left");
+            }
+        };
+        ConsoleHelper.addListener(listener);
+        listener = new KeyListener('l') {
+            @Override
+            public void keyPressed() {
+                System.err.println("Turn right");
+            }
+        };
+        ConsoleHelper.addListener(listener);
+
+        ConsoleHelper.main();
+
     }
 }
