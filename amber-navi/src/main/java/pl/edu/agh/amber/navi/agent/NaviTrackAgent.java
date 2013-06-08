@@ -65,7 +65,7 @@ public class NaviTrackAgent implements Runnable {
         }
     }
 
-    public static final double MAX_SPEED = 200.0;
+    public static final double MAX_SPEED = 1000.0;
 
     public static final double PROPORTIONAL_FACTOR = 20.0;
 
@@ -117,23 +117,22 @@ public class NaviTrackAgent implements Runnable {
                             : (speedDiff < -MAX_SPEED ? -MAX_SPEED : speedDiff));
 
                     if (speedDiff < 0) {
-                        naviDriveAgent.drive((MAX_SPEED + speedDiff), MAX_SPEED);
+                        naviDriveAgent.changeDrive(speedDiff, 0);
                     } else {
-                        naviDriveAgent.drive(MAX_SPEED, (MAX_SPEED - speedDiff));
+                        naviDriveAgent.changeDrive(0, -speedDiff);
                     }
 
-                    logger.fine("Sleep for 1s...");
-                    Thread.sleep(1000);
+                    Thread.sleep(100);
                 } while (location == null || !location.equals(target));
 
                 oldTarget = target;
             }
         } catch (InterruptedException e) {
-            logger.warning("NaviAgent interrupted: " + e.getMessage());
+            logger.warning("NaviTrackAgent interrupted: " + e.getMessage());
             e.printStackTrace();
 
         } catch (Exception e) {
-            logger.warning("NaviAgent: " + e.getMessage());
+            logger.warning("NaviTrackAgent: " + e.getMessage());
             e.printStackTrace();
         }
     }

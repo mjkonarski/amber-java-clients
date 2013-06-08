@@ -1,6 +1,5 @@
 package pl.edu.agh.amber.navi.drive;
 
-import pl.edu.agh.amber.navi.dto.NaviMovement;
 import pl.edu.agh.amber.roboclaw.RoboclawProxy;
 
 import java.io.IOException;
@@ -8,11 +7,11 @@ import java.util.logging.Logger;
 
 public class AmberNaviDrive extends NaviDriveHelper {
 
-    // paoolo TODO get radius of robo
-    public static final int RADIUS = 10;
+    // radius of robo in [mm] paoolo TODO get radius of robo
+    public static final int RADIUS = 250;
 
-    // paoolo TODO determine metrics of speed
-    public static final int MAX_SPEED = 10;
+    // max speed in rotation in [mm/s]
+    public static final int MAX_SPEED = 100;
 
     private static final Logger logger = Logger.getLogger(String.valueOf(AmberNaviDrive.class));
 
@@ -23,41 +22,21 @@ public class AmberNaviDrive extends NaviDriveHelper {
     }
 
     @Override
-    public void drive(NaviMovement movement, int time) {
-        double distance = movement.getLength();
-        int speed = (int) (distance / time);
+    public void stop() {
+        drive(0);
+    }
 
-        if (speed > MAX_SPEED) {
-            speed = MAX_SPEED;
-            time = (int) (distance / MAX_SPEED);
-        }
-
-        rotate(movement.getAngle());
-        drive(speed);
-
-        try {
-            Thread.sleep(time);
-        } catch (InterruptedException e) {
-            logger.warning("Sleeping interrupted during driving: " + e.getMessage());
-        }
-
-        stop();
+    @Override
+    public void drive(int speed) {
+        drive(speed, speed);
     }
 
     @Override
     public void drive(int leftSpeed, int rightSpeed) {
         try {
-            roboclawProxy.sendMotorsCommand(leftSpeed, rightSpeed, leftSpeed, rightSpeed);
-        } catch (IOException e) {
-            logger.info("Error during driving: " + e.getMessage());
-            throw new RuntimeException(e);
-        }
-    }
-
-    @Override
-    public void drive(int speed) {
-        try {
-            roboclawProxy.sendMotorsCommand(speed, speed, speed, speed);
+            synchronized (roboclawProxy) {
+                roboclawProxy.sendMotorsCommand(leftSpeed, rightSpeed, leftSpeed, rightSpeed);
+            }
         } catch (IOException e) {
             logger.info("Error during driving: " + e.getMessage());
             throw new RuntimeException(e);
@@ -66,29 +45,17 @@ public class AmberNaviDrive extends NaviDriveHelper {
 
     @Override
     public void rotate(double angle) {
+        int time = (int) ((Math.abs(angle) * RADIUS) / MAX_SPEED);
+        int speed = (angle > 0 ? MAX_SPEED : -MAX_SPEED);
+
+        drive(speed, -speed);
+
         try {
-            int time = (int) ((Math.abs(angle) * RADIUS) / MAX_SPEED);
-            int speed = (angle > 0 ? MAX_SPEED : -MAX_SPEED);
-
-            roboclawProxy.sendMotorsCommand(speed, -speed, speed, -speed);
-
-            try {
-                Thread.sleep(time);
-            } catch (InterruptedException e) {
-                logger.warning("Sleeping interrupted during rotating: " + e.getMessage());
-            }
-
-            stop();
-
-        } catch (IOException e) {
-            logger.warning("Error during rotating: " + e.getMessage());
-            throw new RuntimeException(e);
-
+            Thread.sleep(time);
+        } catch (InterruptedException e) {
+            logger.warning("Sleeping interrupted during rotating: " + e.getMessage());
         }
-    }
 
-    @Override
-    public void stop() {
-        drive(0);
+        stop();
     }
 }

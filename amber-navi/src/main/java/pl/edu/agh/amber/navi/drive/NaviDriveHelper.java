@@ -26,13 +26,12 @@ public abstract class NaviDriveHelper extends NaviHelper {
         super.notifyMovementChange(movement);
     }
 
-    public abstract void drive(NaviMovement movement, int time);
-
-    public abstract void drive(int speed);
 
     public abstract void stop();
 
-    public abstract void rotate(double angle);
+    public abstract void drive(int speed);
 
     public abstract void drive(int leftSpeed, int rightSpeed);
+
+    public abstract void rotate(double angle);
 }

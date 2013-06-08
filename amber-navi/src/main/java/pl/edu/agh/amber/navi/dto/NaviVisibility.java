@@ -23,4 +23,8 @@ public final class NaviVisibility {
     public double getLengthForAngle(double angle) {
         return visibility.get(angle);
     }
+
+    public List<Double> getAnglesForLength(double length) {
+        return visibility.getAngles(length);
+    }
 }

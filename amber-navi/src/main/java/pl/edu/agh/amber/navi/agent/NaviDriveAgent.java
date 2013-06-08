@@ -2,7 +2,6 @@ package pl.edu.agh.amber.navi.agent;
 
 import pl.edu.agh.amber.navi.drive.NaviDriveHelper;
 import pl.edu.agh.amber.navi.dto.NaviVisibility;
-import pl.edu.agh.amber.navi.eye.NaviEyeHelper;
 
 import java.util.logging.Logger;
 
@@ -10,7 +9,6 @@ public class NaviDriveAgent implements Runnable {
 
     private static final Logger logger = Logger.getLogger(String.valueOf(NaviDriveAgent.class));
 
-    private final NaviEyeHelper eyeHelper;
 
     private final NaviDriveHelper driveHelper;
 
@@ -20,9 +18,8 @@ public class NaviDriveAgent implements Runnable {
 
     private boolean running = true;
 
-    public NaviDriveAgent(NaviDriveHelper driveHelper, NaviEyeHelper eyeHelper) {
+    public NaviDriveAgent(NaviDriveHelper driveHelper) {
         this.driveHelper = driveHelper;
-        this.eyeHelper = eyeHelper;
     }
 
     public void drive(double left, double right) {
@@ -30,6 +27,37 @@ public class NaviDriveAgent implements Runnable {
             this.left = left;
             this.right = right;
         }
+    }
+
+    public void changeDrive(double left, double right) {
+        synchronized (lock) {
+            this.left += left;
+            this.right += right;
+        }
+    }
+
+    public void speedUp() {
+        changeDrive(10, 10);
+    }
+
+    public void speedDown() {
+        changeDrive(-10, -10);
+    }
+
+    public void turnLeft() {
+        changeDrive(-5, 5);
+    }
+
+    public void turnRight() {
+        changeDrive(5, -5);
+    }
+
+    public void rotateLeft() {
+        driveHelper.rotate(-5);
+    }
+
+    public void rotateRight() {
+        driveHelper.rotate(5);
     }
 
     synchronized void stop() {
@@ -42,37 +70,28 @@ public class NaviDriveAgent implements Runnable {
 
     @Override
     public void run() {
-        double left, right, oldLeft, oldRight;
+        double left, right, oldLeft = 0.0, oldRight = 0.0;
         NaviVisibility visibility;
 
-        while (isRunning()) {
-            synchronized (lock) {
-                left = this.left;
-                right = this.right;
+        try {
+            while (isRunning()) {
+                synchronized (lock) {
+                    left = this.left;
+                    right = this.right;
+                }
+                if (Double.compare(left, oldLeft) != 0
+                        || Double.compare(right, oldRight) != 0) {
+                    driveHelper.drive((int) left, (int) right);
+                    oldLeft = left;
+                    oldRight = right;
+                }
+                Thread.sleep(100);
             }
+        } catch (InterruptedException e) {
+            logger.warning("NaviDriveAgent interrupted: " + e.getMessage());
+            e.printStackTrace();
 
-            visibility = eyeHelper.getVisibility();
-            if (visibility != null) {
-                // paoolo FIXME read speed from driverHelper
-                double length = getLength(left, right, visibility);
-                // paoolo TODO determine how to change left,right values more, to avoid
-
-            } else {
-                logger.warning("No information about visibility");
-            }
-
-            oldLeft = left;
-            oldRight = right;
+            driveHelper.stop();
         }
-    }
-
-    private static double getAngle(double left, double right) {
-        // paoolo TODO compute value from left/right vector
-        return 0.0;
-    }
-
-    private static double getLength(double left, double right, NaviVisibility visibility) {
-        double angle = getAngle(left, right);
-        return visibility.getLengthForAngle(angle);
     }
 }

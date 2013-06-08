@@ -5,6 +5,7 @@ import pl.edu.agh.amber.common.AmberClient;
 import pl.edu.agh.amber.navi.NaviConfig;
 import pl.edu.agh.amber.navi.agent.NaviDriveAgent;
 import pl.edu.agh.amber.navi.agent.NaviTrackAgent;
+import pl.edu.agh.amber.navi.agent.NaviVisibilityAgent;
 import pl.edu.agh.amber.navi.drive.AmberNaviDrive;
 import pl.edu.agh.amber.navi.drive.NaviDriveHelper;
 import pl.edu.agh.amber.navi.dto.NaviPoint;
@@ -77,36 +78,52 @@ public class NaviMain {
         NaviTrackHelper trackHelper;
         NaviEyeHelper eyeHelper;
 
-        driveHelper = new AmberNaviDrive(roboclawProxy);
-
         switch (NaviConfig.getTrackHelperType()) {
             case HOLUX:
                 SerialPort holuxSerialPort = SerialPortHelper.getHoluxSerialPort(holuxPortName);
                 trackHelper = new HoluxNaviTrack(holuxSerialPort);
+                logger.info("Started Holux");
                 break;
             case STAR_GAZER:
                 SerialPort starGazerSerialPort = SerialPortHelper.getStarGazerSerialPort(starGazerPortName);
                 trackHelper = new StarGazerNaviTrack(starGazerSerialPort);
+                logger.info("Started StarGazer");
                 break;
             default:
                 trackHelper = null;
-                System.err.println("No location device. Rocket-science!!!");
+                logger.warning("No location device.");
         }
 
-        SerialPort hokuyoSerialPort = SerialPortHelper.getHokuyoSerialPort(hokuyoPortName);
-        eyeHelper = new HokuyoNaviEye(hokuyoSerialPort);
-        Thread eyeThread = new Thread(eyeHelper);
-        eyeThread.start();
+        switch (NaviConfig.getEyeHelperType()) {
+            case HOKUYO:
+                SerialPort hokuyoSerialPort = SerialPortHelper.getHokuyoSerialPort(hokuyoPortName);
+                eyeHelper = new HokuyoNaviEye(hokuyoSerialPort);
+                Thread eyeThread = new Thread(eyeHelper);
+                eyeThread.start();
+                logger.info("Started Hokuyo");
+                break;
+            default:
+                eyeHelper = null;
+                logger.warning("No eye device.");
+        }
 
-        NaviDriveAgent naviDriveAgent = new NaviDriveAgent(driveHelper, eyeHelper);
-        Thread driveThread = new Thread(naviDriveAgent);
-        driveThread.start();
+        driveHelper = new AmberNaviDrive(roboclawProxy);
+
+        final NaviDriveAgent naviDriveAgent = new NaviDriveAgent(driveHelper);
+        new Thread(naviDriveAgent).start();
+        logger.info("Started driver agent");
+
+        if (eyeHelper != null) {
+            NaviVisibilityAgent naviVisibilityAgent = new NaviVisibilityAgent(eyeHelper, naviDriveAgent);
+            new Thread(naviVisibilityAgent).start();
+            logger.info("Started visibility agent");
+        }
 
         if (trackHelper != null) {
             NaviTrackAgent naviTrackAgent = new NaviTrackAgent(trackHelper, naviDriveAgent);
             naviTrackAgent.addLastPoints(route);
-            Thread trackThread = new Thread(naviTrackAgent);
-            trackThread.start();
+            new Thread(naviTrackAgent).start();
+            logger.info("Started tracker agent");
         }
 
         KeyListener listener;
@@ -114,6 +131,7 @@ public class NaviMain {
             @Override
             public void keyPressed() {
                 System.err.println("Speed up");
+                naviDriveAgent.speedUp();
             }
         };
         ConsoleHelper.addListener(listener);
@@ -121,24 +139,44 @@ public class NaviMain {
             @Override
             public void keyPressed() {
                 System.err.println("Speed down");
+                naviDriveAgent.speedDown();
+            }
+        };
+        ConsoleHelper.addListener(listener);
+        listener = new KeyListener('j') {
+            @Override
+            public void keyPressed() {
+                System.err.println("Turn left");
+                naviDriveAgent.turnLeft();
             }
         };
         ConsoleHelper.addListener(listener);
         listener = new KeyListener('k') {
             @Override
             public void keyPressed() {
-                System.err.println("Turn left");
+                System.err.println("Turn right");
+                naviDriveAgent.turnRight();
             }
         };
         ConsoleHelper.addListener(listener);
-        listener = new KeyListener('l') {
+        listener = new KeyListener('n') {
             @Override
             public void keyPressed() {
-                System.err.println("Turn right");
+                System.err.println("Rotate left");
+                naviDriveAgent.rotateLeft();
+            }
+        };
+        ConsoleHelper.addListener(listener);
+        listener = new KeyListener('m') {
+            @Override
+            public void keyPressed() {
+                System.err.println("Rotate right");
+                naviDriveAgent.rotateRight();
             }
         };
         ConsoleHelper.addListener(listener);
 
+        System.err.println("Enabling live steering");
         ConsoleHelper.main();
 
     }

@@ -1,7 +1,6 @@
 package pl.edu.agh.amber.navi.tool;
 
-import java.util.HashMap;
-import java.util.TreeSet;
+import java.util.*;
 
 public class ContinuumMap extends HashMap<Double, Double> {
 
@@ -33,5 +32,15 @@ public class ContinuumMap extends HashMap<Double, Double> {
             angles.remove(key);
         }
         return super.remove(key);
+    }
+
+    public List<Double> getAngles(double length) {
+        List<Double> angles = new LinkedList<Double>();
+        for (Map.Entry<Double, Double> entry : entrySet()) {
+            if (entry.getValue() < length) {
+                angles.add(entry.getValue());
+            }
+        }
+        return angles;
     }
 }
