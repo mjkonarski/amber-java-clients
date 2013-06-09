@@ -1,14 +1,13 @@
 package pl.edu.agh.amber.navi.agent;
 
+import pl.edu.agh.amber.navi.NaviConst;
 import pl.edu.agh.amber.navi.drive.NaviDriveHelper;
-import pl.edu.agh.amber.navi.dto.NaviVisibility;
 
 import java.util.logging.Logger;
 
 public class NaviDriveAgent implements Runnable {
 
     private static final Logger logger = Logger.getLogger(String.valueOf(NaviDriveAgent.class));
-
 
     private final NaviDriveHelper driveHelper;
 
@@ -60,6 +59,17 @@ public class NaviDriveAgent implements Runnable {
         driveHelper.rotate(5);
     }
 
+    public void changeAngleTo(double angle) {
+        angle = Math.toRadians(angle);
+        double val = Math.tan(angle) * NaviConst.SPACING;
+        synchronized (lock) {
+            // paoolo TODO check it
+            double diff = val - (right - left);
+            right += diff / 2;
+            left -= diff / 2;
+        }
+    }
+
     synchronized void stop() {
         running = false;
     }
@@ -70,18 +80,17 @@ public class NaviDriveAgent implements Runnable {
 
     @Override
     public void run() {
-        double left, right, oldLeft = 0.0, oldRight = 0.0;
-        NaviVisibility visibility;
+        int left, right, oldLeft = 0, oldRight = 0;
 
         try {
             while (isRunning()) {
                 synchronized (lock) {
-                    left = this.left;
-                    right = this.right;
+                    left = (int) this.left;
+                    right = (int) this.right;
                 }
-                if (Double.compare(left, oldLeft) != 0
-                        || Double.compare(right, oldRight) != 0) {
-                    driveHelper.drive((int) left, (int) right);
+                System.err.println("Current speed: " + left + ", " + right);
+                if (left != oldLeft || right != oldRight) {
+                    driveHelper.drive(left, right);
                     oldLeft = left;
                     oldRight = right;
                 }

@@ -76,9 +76,7 @@ public class NaviTrackAgent implements Runnable {
     @Override
     public void run() {
         NaviPoint target, oldTarget, location;
-
-        double proportional = 0.0, lastProportional = 0.0, derivative, integral = 0.0;
-        double speedDiff;
+        double proportional, speedDiff;
 
         logger.info("Started");
 
@@ -104,17 +102,11 @@ public class NaviTrackAgent implements Runnable {
                     location = trackHelper.getLocation();
                     if (location != null) {
                         proportional = getProportional(location, target, oldTarget);
+                        speedDiff = getSpeedDiff(proportional);
                     } else {
                         logger.warning("No location.");
+                        speedDiff = 0;
                     }
-
-                    derivative = proportional - lastProportional;
-                    integral += proportional;
-
-                    speedDiff = proportional / PROPORTIONAL_FACTOR + integral / INTEGRAL_FACTOR
-                            + derivative / DERIVATIVE_FACTOR;
-                    speedDiff = (speedDiff > MAX_SPEED ? MAX_SPEED
-                            : (speedDiff < -MAX_SPEED ? -MAX_SPEED : speedDiff));
 
                     if (speedDiff < 0) {
                         naviDriveAgent.changeDrive(speedDiff, 0);
@@ -171,5 +163,19 @@ public class NaviTrackAgent implements Runnable {
         area = computeArea(currentLocation, oldTarget, target);
         length = computeLength(oldTarget, target);
         return (2 * area) / length;
+    }
+
+    private double lastProportional = 0.0, integral = 0.0;
+
+    private double getSpeedDiff(double proportional) {
+        double derivative = proportional - lastProportional;
+        integral += proportional;
+
+        double speedDiff = proportional / PROPORTIONAL_FACTOR + integral / INTEGRAL_FACTOR + derivative / DERIVATIVE_FACTOR;
+        speedDiff = (speedDiff > MAX_SPEED ? MAX_SPEED : (speedDiff < -MAX_SPEED ? -MAX_SPEED : speedDiff));
+
+        lastProportional = proportional;
+
+        return speedDiff;
     }
 }

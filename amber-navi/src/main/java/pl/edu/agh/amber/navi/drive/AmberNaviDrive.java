@@ -43,6 +43,7 @@ public class AmberNaviDrive extends NaviDriveHelper {
         }
     }
 
+    // paoolo FIXME improve rotating in place
     @Override
     public void rotate(double angle) {
         int time = (int) ((Math.abs(angle) * RADIUS) / MAX_SPEED);

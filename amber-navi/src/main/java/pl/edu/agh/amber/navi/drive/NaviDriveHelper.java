@@ -26,7 +26,6 @@ public abstract class NaviDriveHelper extends NaviHelper {
         super.notifyMovementChange(movement);
     }
 
-
     public abstract void stop();
 
     public abstract void drive(int speed);
